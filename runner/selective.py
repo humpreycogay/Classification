@@ -109,6 +109,69 @@ def coverage_at_target(g: Groups, target: float, certified: bool = False) -> dic
     return best
 
 
+# ---------------------------------------------------------------- held-out thresholds
+#
+# coverage_at_target picks the threshold on the items it then scores, which overstates what a threshold fixed in
+# advance achieves. The functions below separate the two steps: a threshold is fitted on one set of items (a
+# calibration sample, or the other fold in cross-fitting) and only then applied to the evaluation items.
+
+CROSS_FIT_FOLDS = 2
+CROSS_FIT_SEED = 0
+
+
+def fit_threshold(conf, correct, target: float, certified: bool = True) -> float | None:
+    """The threshold coverage_at_target selects on these items (None when no threshold reaches the target)."""
+    return coverage_at_target(groups(conf, correct), target, certified)["threshold"]
+
+
+def apply_threshold(conf, correct, threshold: float | None) -> dict:
+    """Coverage and accuracy of a fixed threshold ("accept when confidence >= threshold") on new items."""
+    conf = np.round(np.asarray(conf, dtype=float), 12)
+    correct = np.asarray(correct, dtype=bool)
+    accepted = conf >= threshold if threshold is not None else np.zeros(len(conf), dtype=bool)
+    k, m = int(correct[accepted].sum()), int(accepted.sum())
+    return {"threshold": threshold, "n": len(conf), "accepted": m, "correct": k,
+            "coverage": m / len(conf) if len(conf) else float("nan"),
+            "accuracy": k / m if m else float("nan"), "ci": wilson(k, m) if m else (float("nan"), float("nan"))}
+
+
+def _summarize(target: float, certified: bool, method: str, n: int, accepted: int, k: int, **extra) -> dict:
+    acc = k / accepted if accepted else float("nan")
+    return {"target": target, "certified": certified, "method": method, "n": n, "accepted": accepted,
+            "coverage": accepted / n if n else float("nan"), "accuracy": acc,
+            "ci": wilson(k, accepted) if accepted else (float("nan"), float("nan")),
+            "met": bool(accepted and acc >= target - 1e-12), **extra}
+
+
+def held_out_at_target(cal_conf, cal_correct, conf, correct, target: float, certified: bool = True) -> dict:
+    """Fit the threshold on a calibration sample, then measure coverage and accuracy on the evaluation items."""
+    t = fit_threshold(cal_conf, cal_correct, target, certified)
+    r = apply_threshold(conf, correct, t)
+    return _summarize(target, certified, "held-out", r["n"], r["accepted"], r["correct"], threshold=t,
+                      n_calibration=len(np.asarray(cal_conf)))
+
+
+def cross_fit_at_target(conf, correct, target: float, certified: bool = True, folds: int = CROSS_FIT_FOLDS,
+                        seed: int = CROSS_FIT_SEED) -> dict:
+    """K-fold cross-fitting: each fold is scored with the threshold fitted on the other folds; counts are pooled.
+
+    Used when no separate calibration sample exists. Every item is scored by a threshold that never saw it, so the
+    result is not optimistic the way coverage_at_target is (at the cost of fitting on fewer items).
+    """
+    conf = np.asarray(conf, dtype=float)
+    correct = np.asarray(correct, dtype=bool)
+    fold = np.random.default_rng(seed).permutation(len(conf)) % folds
+    accepted = k = 0
+    thresholds = []
+    for f in range(folds):
+        fit, score = fold != f, fold == f
+        t = fit_threshold(conf[fit], correct[fit], target, certified)
+        r = apply_threshold(conf[score], correct[score], t)
+        accepted, k = accepted + r["accepted"], k + r["correct"]
+        thresholds.append(t)
+    return _summarize(target, certified, "cross-fitted", len(conf), accepted, k, thresholds=thresholds, folds=folds)
+
+
 # ---------------------------------------------------------------- calibration
 
 def reliability(conf, correct, bins: int = ECE_BINS) -> list[dict]:
@@ -201,6 +264,9 @@ def selective_metrics(df: pd.DataFrame, labels: list[str]) -> dict:
         "at_coverage": [accuracy_at_coverage(g, c) for c in COVERAGES],
         "at_target": {t: {"optimistic": coverage_at_target(g, t), "certified": coverage_at_target(g, t, True)}
                       for t in TARGETS},
+        # Not fitted on the items it scores; report.py replaces it with a held-out result when a calibration
+        # sample (another seed's run) exists.
+        "held_out": {t: cross_fit_at_target(conf, correct, t) for t in TARGETS},
         "reliability": bins, "mce": mce_value, "mce_bins": mce_bins,
         "classwise_ece": classwise_ece(probs, label_idx) if probs is not None else float("nan"),
         "top2": top2_accuracy(probs, label_idx) if probs is not None else float("nan"),

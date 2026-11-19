@@ -530,6 +530,29 @@ def latest_full_report_path(task_name: str) -> Path:
     return REPORTS_DIR / f"{task_name}_full.html"
 
 
+def latest_marker_path(task_name: str) -> Path:
+    """reports/<task>_latest.json: which run the published reports/<task>.html came from, and its sample size."""
+    return REPORTS_DIR / f"{task_name}_latest.json"
+
+
+def should_publish(task_name: str, n: int, force: bool = False) -> tuple[bool, str | None]:
+    """Publish a run as reports/<task>.html unless a larger sample is already published there.
+
+    The published page is the headline result, so a later small (smoke) run must not replace a larger (common or full)
+    one by accident. Returns (publish, reason when not).
+    """
+    if force:
+        return True, None
+    try:
+        current = json.loads(latest_marker_path(task_name).read_text())
+    except (OSError, ValueError):
+        return True, None
+    if int(current.get("n", 0)) > n:
+        return False, (f"reports/{task_name}.html shows a larger sample (n = {current['n']}, run {current.get('run')}); "
+                       f"this n = {n} run was not published there (pass --publish-smaller to replace it)")
+    return True, None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     size = parser.add_mutually_exclusive_group()
@@ -550,6 +573,8 @@ def main() -> None:
                         help="articles each app times one at a time for interactive latency (0 = skip)")
     parser.add_argument("--sweep", action="store_true", help="also time batch sizes / concurrency levels (128 articles)")
     parser.add_argument("--require-ac", action="store_true", help="refuse to time apps while on battery power")
+    parser.add_argument("--publish-smaller", action="store_true",
+                        help="replace reports/<task>.html even when it shows a larger sample than this run")
     args = parser.parse_args()
 
     for name in (args.only or []) + args.skip:
@@ -620,7 +645,8 @@ def main() -> None:
     # Apps not selected still appear in the report, from their latest results in the app folder.
     for app in APPS:
         entry = {"title": app.display_title, "runs_on": app.runs_on, "confidence": app.confidence,
-                 "supervision": app.supervision_on(task.name)}
+                 "supervision": app.supervision_on(task.name), "approach": app.approach_on(task.name),
+                 "remote": app.remote}
         runs: list[dict] = []
         if (args.report_only or app not in selected) and (reason := task_limits(app, task)):
             entry.update(status="skipped", reason=reason)
@@ -683,9 +709,15 @@ def main() -> None:
     summary["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     (run_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     latest, latest_full = latest_report_path(task.name), latest_full_report_path(task.name)
-    report = build_report(run_dir, also=((latest, latest_full),))  # each copy gets its own relative links
-    print(f"\nReport: {report} (summary: {report.with_name('report_simple.html')})"
-          f"\nLatest: {latest} (full raw report: {latest_full})")
+    publish, why_not = should_publish(task.name, n, args.publish_smaller)
+    # each copy gets its own relative links
+    report = build_report(run_dir, also=((latest, latest_full),) if publish else ())
+    print(f"\nReport: {report} (summary: {report.with_name('report_simple.html')})")
+    if publish:
+        latest_marker_path(task.name).write_text(json.dumps({"n": n, "seeds": seeds, "run": run_dir.name}, indent=2) + "\n")
+        print(f"Latest: {latest} (full raw report: {latest_full})")
+    else:
+        print(f"Not published: {why_not}")
 
 
 if __name__ == "__main__":

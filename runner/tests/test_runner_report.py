@@ -173,7 +173,8 @@ class ReportTest(unittest.TestCase):
         self.assertNotIn("statistically tied)", tiles)
         self.assertNotIn("Most accurate", tiles)
         simple = (self.run / "report_simple.html").read_text()
-        self.assertIn("There is no single winner", simple)
+        self.assertIn("should not be read as a ranking", simple)
+        self.assertIn("all scored 100%", simple)  # no "between 100% and 100%"
 
     def test_summary_report_written_beside_full_report(self):
         """Every build writes both versions; the summary links to the full raw report and back."""
@@ -207,9 +208,27 @@ class ReportTest(unittest.TestCase):
             self.assertNotIn(phrase, self.html)
         self.assertIn("Do not infer pairwise significance", self.section("accuracy"))
         self.assertIn("not evidence that the apps are equivalent", self.section("stats"))
-        self.assertIn("Auto-accept coverage (Wilson LB", self.section("overview"))
+        self.assertIn("Auto-accept coverage at 95% (held-out)", self.section("overview"))
         tiles = self.html[self.html.index("class='tiles'"):self.html.index("id='overview'")]
         self.assertIn("the only app whose bootstrap rank interval includes 1", tiles)
+
+    def test_summary_phase2_wording(self):
+        """Phase 2 review: exploratory framing, CI wording, batched vs single-request time, approach, held-out gating."""
+        simple = (self.run / "report_simple.html").read_text()
+        for phrase in ("Exploratory results", "Accuracy range (95% CI)", "not a test of whether two classifiers differ",
+                       "(batched)", "Single request", "Approach", "checked on different ones"):
+            self.assertIn(phrase, simple)
+        for phrase in ("Likely range", "usually land inside", "treat them as roughly equal", "The short answer",
+                       "For a sense of scale", "There is no single winner", "The question is",
+                       "chosen on the same test", "cannot separate"):
+            self.assertNotIn(phrase, simple)
+
+    def test_selective_held_out_columns(self):
+        selective = self.html[self.html.index("id='selective'"):self.html.index("id='calibration'")]
+        self.assertIn("held-out", selective)
+        self.assertIn("in-sample (optimistic)", selective)
+        meta = json.loads((self.run / "report_meta.json").read_text())
+        self.assertEqual(set(meta["selective_thresholds"].values()), {"cross-fitted"})  # one seed: no calibration run
 
     def test_forest_plot_and_task_card(self):
         stats = self.section("stats")

@@ -16,6 +16,7 @@ import math
 from datetime import datetime
 
 import perf
+from stats import wilson
 
 MODELS_HREF = "{{MODELS_HREF}}"
 FULL_HREF = "{{FULL_HREF}}"
@@ -34,12 +35,17 @@ TASK_STORY = {
                  "of one another, so telling them apart is much harder than sorting news by topic.",
 }
 
-KIND_TEXT = {
-    "zero-shot": "label names only",
-    "supervised": "trained on this task",
-    "in-domain trained": "saw this task before",
-    "virtual": "simple rule",
+# The approach categories (apps.APPROACHES) in plain words, in the order the summary lists them.
+APPROACH_TEXT = {
+    "zero-shot": "given only the label names, never an example",
+    "in-domain checkpoint": "released models whose own training already included this task's data",
+    "classical supervised": "word-count (TF-IDF) or embedding features with a simple classifier, fitted on the "
+                            "task's training examples",
+    "fine-tuned encoder": "pre-trained language models adapted to the task with its training examples",
+    "from scratch": "neural networks trained only on the task's training examples, starting from random weights",
 }
+
+EXPLORATORY_BELOW = 1000  # samples smaller than the common tier get the "exploratory" notice
 
 CSS = """
 @font-face { font-family: "Inter Tight"; font-style: normal; font-weight: 100 900; font-display: swap;
@@ -94,6 +100,8 @@ tr.top td.name { font-weight: 620; }
 .bar span.fill { display: block; height: 100%; background: var(--bar); border-radius: 4px; }
 tr.base .bar span.fill { background: var(--base); }
 .small { font-size: 14px; color: var(--faint); }
+.notice { margin: 20px 0 8px; padding: 12px 16px; border: 1px solid var(--line-strong); border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0; background: var(--accent-soft); font-size: 15px; line-height: 1.55; }
 ul.plain { padding-left: 20px; margin: 0 0 16px; } ul.plain li { margin-bottom: 8px; }
 .full { margin-top: 56px; padding: 20px 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .full h2 { margin-top: 0; font-size: 20px; }
@@ -156,11 +164,14 @@ def count_word(k: int) -> str:
 
 def simple_page(*, task, summary: dict, primary: str, noun: str, apps: dict, metrics: dict, metas: dict,
                 ranked: list[str], models: list[str], virtual: set[str], lead: list[str], best: str | None,
-                title, link, supervision, per_item, example=None) -> str:
+                title, link, supervision, per_item, approach, remote, latency, slow_conditions=frozenset(),
+                example=None) -> str:
     """The summary report as one HTML page (placeholders MODELS_HREF and FULL_HREF still in it).
 
     title(app) is the display name, link(app) the name linked to its model page, supervision(app) how it learned,
-    per_item(meta) its seconds per item; example is the shared sample (its first row is shown).
+    approach(app) its comparison category (apps.APPROACHES), remote(app) whether it ran on another machine,
+    per_item(meta) its batched seconds per item, latency(meta) its single-request median (None if not measured);
+    slow_conditions holds apps timed on battery or in Low Power Mode; example is the shared sample (first row shown).
     """
     name = TASK_TITLES.get(task.name, task.name)
     n = summary["n"]
@@ -193,25 +204,40 @@ def simple_page(*, task, summary: dict, primary: str, noun: str, apps: dict, met
     w("<p class='eyebrow'>Benchmark results</p>")
     w(f"<h1>How well do text classifiers sort {esc(name)}?</h1>")
     w(f"<p class='lede'>We gave {len(models)} classifiers the same {n:,} {esc(nouns)} and checked how many each one "
-      f"labeled correctly, how fast it worked, and how much memory it needed. This page tells the story of the "
-      f"results in plain language.</p>")
+      f"labeled correctly, how fast it worked, and how much memory it needed. The results hold for this sample, "
+      f"hardware and setup; the full report has every statistic behind them.</p>")
     w(f"<p class='meta'>Results from {started:%-d %B %Y} · {esc(env.get('machine') or 'one machine')}"
       + (f", {env.get('memory_gb')} GB memory" if env.get("memory_gb") else "")
       + f" · <a href='{FULL_HREF}'>Full raw report</a></p>")
 
+    # ---- exploratory banner: small samples cannot rank close classifiers
+    lo90, hi90 = wilson(round(0.9 * n), n)
+    half = (hi90 - lo90) / 2 * 100
+    per_label = n / len(labels)
+    if n < EXPLORATORY_BELOW:
+        w(f"<div class='notice'><b>Exploratory results.</b> This run used {n:,} {esc(nouns)}, about "
+          f"{per_label:.0f} per label. At this size an accuracy near 90% is only known to within about "
+          f"±{half:.0f} points, so read the order of classifiers that are close together as provisional.</div>")
+
     # ---- at a glance
+    timed_lat = {n_: latency(metas[n_]) for n_ in models if n_ in metas and latency(metas[n_])}
+    fastest_lat = min(timed_lat, key=timed_lat.get, default=None)
     fastest = min((n_ for n_ in models if time_of(n_)), key=time_of, default=None)
     majority = next((n_ for n_ in ranked if n_ in virtual and "majority" in n_.lower()), None)
     w("<div class='glance'>")
     if best:
         w(f"<div><div class='k'>Highest {esc(metric_word)}</div><div class='v'>{pct(acc(best))}</div>"
-          f"<div class='s'>{esc(title(best))}</div></div>")
-    if fastest:
-        w(f"<div><div class='k'>Fastest</div><div class='v'>{secs(time_of(fastest))}</div>"
-          f"<div class='s'>per {esc(noun)}, {esc(title(fastest))} ({pct(acc(fastest))} correct)</div></div>")
+          f"<div class='s'>{esc(title(best))}<br>{esc(approach(best))}, on this sample</div></div>")
+    if fastest_lat:
+        w(f"<div><div class='k'>Fastest single request</div><div class='v'>{secs(timed_lat[fastest_lat])}</div>"
+          f"<div class='s'>median, one {esc(noun)} at a time: {esc(title(fastest_lat))} "
+          f"({pct(acc(fastest_lat))} correct)</div></div>")
+    elif fastest:
+        w(f"<div><div class='k'>Fastest average (batched)</div><div class='v'>{secs(time_of(fastest))}</div>"
+          f"<div class='s'>per {esc(noun)} with batching: {esc(title(fastest))} ({pct(acc(fastest))} correct)</div></div>")
     if majority:
-        w(f"<div><div class='k'>Blind guessing scores</div><div class='v'>{pct(acc(majority))}</div>"
-          f"<div class='s'>always picking the most common label</div></div>")
+        w(f"<div><div class='k'>Always picking one label</div><div class='v'>{pct(acc(majority))}</div>"
+          f"<div class='s'>the most common label, ignoring the text</div></div>")
     w("</div>")
 
     # ---- what was tested
@@ -223,59 +249,84 @@ def simple_page(*, task, summary: dict, primary: str, noun: str, apps: dict, met
         text = text if len(text) <= 260 else text[:257] + "…"
         w(f"<blockquote>“{esc(text)}”<br><b>Correct label:</b> {esc(label_names.get(row['label'], row['label']))}"
           "</blockquote>")
-    per_label = n / len(labels)
     w(f"<p>Every classifier was given the same {n:,} {esc(nouns)}, drawn from the test set with "
       + (f"an equal number from each of the {len(labels)} labels" if n % len(labels) == 0
          else f"the {len(labels)} labels spread as evenly as possible")
       + f". None of these {esc(nouns)} were used to train any of the models. Each classifier returned one label per "
-      f"{esc(noun)} and, in most cases, a score saying how sure it was.</p>")
-    kinds = {k: sum(1 for n_ in models if supervision(n_) == k) for k in ("zero-shot", "supervised", "in-domain trained")}
-    w("<p>The classifiers fall into two broad families. Some <b>learned from labeled examples</b> of this very task "
-      f"({kinds['supervised'] + kinds['in-domain trained']} of them): they were shown thousands of {esc(nouns)} with "
-      "the right answer attached before the test. The others work <b>from the label names alone</b> "
-      f"({kinds['zero-shot']} of them, often called zero-shot): they are told what the labels are, but never see an "
-      "example. The second kind is harder to build well, but it can be pointed at a new task without collecting "
-      "training data.</p>")
+      f"{esc(noun)} and, in most cases, a confidence score.</p>")
+    counts = {a: sum(1 for n_ in models if approach(n_) == a) for a in APPROACH_TEXT}
+    n_remote = sum(1 for n_ in models if remote(n_))
+    w("<p>The classifiers differ in how much they were told about the task before the test, and that matters as "
+      "much as the model itself when comparing scores:</p><ul class='plain'>"
+      + "".join(f"<li><b>{esc(a.capitalize())}</b> ({k}): {esc(APPROACH_TEXT[a])}</li>"
+                for a, k in counts.items() if k)
+      + "</ul>")
+    if n_remote:
+        w(f"<p>{count_word(n_remote).capitalize()} of them ran on a remote service rather than the test machine, so "
+          f"{'its times include' if n_remote == 1 else 'their times include'} the network and unknown hardware.</p>")
 
-    # ---- the short answer
-    w("<h2>The short answer</h2>")
+    # ---- main findings
+    w("<h2>Main findings</h2>")
     if best:
         if len(lead) > 1:
             lo = min(acc(n_) for n_ in lead)
-            w(f"<p>There is no single winner. The top {count_word(len(lead))} classifiers scored between "
-              f"{pct(lo)} and {pct(acc(best))}, and with {n:,} test {esc(nouns)} the gaps between them are too small "
-              f"to call: on a different set of {esc(nouns)} their order could easily change. They are "
-              f"{join([link(n_) for n_ in lead])}.</p>")
+            spread = (f"all scored {pct(lo)}" if pct(lo) == pct(acc(best)) else f"scored between {pct(lo)} and {pct(acc(best))}")
+            w(f"<p>The top {count_word(len(lead))} classifiers {spread}: "
+              f"{join([link(n_) for n_ in lead])}. When the {n:,} {esc(nouns)} are resampled (the paired bootstrap in "
+              "the full report), each of them comes first often enough that their order here should not be read as a "
+              "ranking.</p>")
         else:
-            w(f"<p>{link(best)} is the most accurate, getting {pct(acc(best))} of the {esc(nouns)} right "
-              f"({metrics[best]['correct']:,} of {n:,}). Its lead is large enough that it is unlikely to be down to "
-              f"the particular {esc(nouns)} we happened to test.</p>")
-        if supervision(best) != "zero-shot":
-            zs = next((n_ for n_ in models if supervision(n_) == "zero-shot"), None)
-            if zs:
-                gap = round(abs(acc(best) - acc(zs)) * 100)
-                w(f"<p>The best classifier that worked from the label names alone is {link(zs)}, at {pct(acc(zs))}. "
-                  + (f"That is only {gap} point{'s' if gap != 1 else ''} behind the top score, so on this task "
-                     "training data buys surprisingly little.</p>" if gap <= 2 else
-                     f"That is {gap} points behind the top score: roughly the price of skipping training data on "
-                     "this task.</p>"))
+            w(f"<p>{link(best)} is the most accurate on this sample, with {pct(acc(best))} of the {esc(nouns)} right "
+              f"({metrics[best]['correct']:,} of {n:,}). When the {esc(nouns)} are resampled (the paired bootstrap in "
+              "the full report), no other classifier comes first often enough to share the lead.</p>")
+        best_by = {}
+        for n_ in models:  # models is in accuracy order, so the first per approach is its best
+            best_by.setdefault(approach(n_), n_)
+        if len(best_by) > 1:
+            w("<p>Because the approaches start from such different positions, the fairer comparison is within each "
+              "group:</p>")
+            w("<div class='table'><table><thead><tr><th class='l'>Approach</th><th class='l'>Best classifier</th>"
+              f"<th>Accuracy</th><th>95% CI</th></tr></thead><tbody>"
+              + "".join(f"<tr><td class='l'>{esc(a)}</td><td class='l name'>{link(n_)}</td><td>{pct(acc(n_))}</td>"
+                        f"<td>{pct(metrics[n_]['ci'][0])}–{pct(metrics[n_]['ci'][1])}</td></tr>"
+                        for a, n_ in sorted(best_by.items(), key=lambda kv: -acc(kv[1])))
+              + "</tbody></table></div>")
+        zs = best_by.get("zero-shot")
+        trained = next((n_ for n_ in models if approach(n_) != "zero-shot"), None)
+        if zs and trained:
+            gap = round((acc(trained) - acc(zs)) * 100)
+            if gap > 2:
+                w(f"<p>The best zero-shot classifier, {link(zs)}, is {gap} points behind the best one that learned from "
+                  f"this task's data ({link(trained)}): roughly what labeled examples are worth on {esc(name)}.</p>")
+            elif gap >= -2:
+                w(f"<p>The best zero-shot classifier, {link(zs)}, is within {max(abs(gap), 1)} point"
+                  f"{'s' if abs(gap) > 1 else ''} of the best one that learned from this task's data ({link(trained)}), "
+                  f"so on {esc(name)} labeled examples add little.</p>")
+            else:
+                w(f"<p>The best zero-shot classifier, {link(zs)}, scored {-gap} points above every classifier trained "
+                  f"on this task's data.</p>")
         if majority:
             above = sum(1 for n_ in models if acc(n_) > acc(majority) + 0.10)
-            beat = ("Every classifier beat that" if above == len(models)
+            beat = ("every classifier beat that" if above == len(models)
                     else f"{above} of the {len(models)} classifiers beat that")
-            w(f"<p>For a sense of scale, a rule that ignores the text and always picks the most common label gets "
-              f"{pct(acc(majority))} right. {beat} by more than ten points.</p>")
+            w(f"<p>Always answering with the most common label scores {pct(acc(majority))}; {beat} by more than ten "
+              "points.</p>")
 
     # ---- how to read
     w("<h2>How to read the numbers</h2>")
     w("<dl class='terms'>"
       f"<dt>Accuracy</dt><dd>The share of {esc(nouns)} the classifier labeled correctly. 90% means 9 out of 10 "
       "were right.</dd>"
-      f"<dt>Likely range</dt><dd>A test on {n:,} {esc(nouns)} is a sample, not the final word. If the same "
-      "classifier were tested on fresh items, its accuracy would usually land inside this range. When two "
-      "classifiers' ranges overlap a lot, treat them as roughly equal.</dd>"
-      f"<dt>Time per {esc(noun)}</dt><dd>How long the classifier took for each {esc(noun)} on our test machine, "
-      "working at its normal pace. Smaller is faster.</dd>"
+      f"<dt>Accuracy range (95% CI)</dt><dd>A statistical estimate (Wilson 95% confidence interval) of the "
+      f"uncertainty in the measured accuracy. With only {n:,} {esc(nouns)}, the true accuracy could plausibly be "
+      "higher or lower than the measured figure. Each interval describes one classifier on its own; it is not a test "
+      "of whether two classifiers differ, and overlapping intervals do not mean two classifiers are equal. The full "
+      "report has paired tests for that.</dd>"
+      f"<dt>Average time per {esc(noun)} (batched)</dt><dd>Total classification time divided by the number of "
+      f"{esc(nouns)}, with each classifier processing the sample in its usual batches or parallel requests. Model "
+      "loading is not included. This measures throughput: it is not how long one request takes.</dd>"
+      "<dt>Single request</dt><dd>The median time to classify one item sent on its own, which is what a user waiting "
+      "for one answer experiences. A dash means it was not measured in this run.</dd>"
       "<dt>Memory</dt><dd>The most memory the classifier used while running, including any separate model server. "
       "A dash means it was not measured, for example for an online service.</dd>"
       "</dl>")
@@ -283,26 +334,37 @@ def simple_page(*, task, summary: dict, primary: str, noun: str, apps: dict, met
     # ---- results table
     w("<h2>All results</h2>")
     n_base = sum(1 for r in ranked if r in virtual)
-    w("<p>Every classifier, from most to least accurate."
+    w("<p>Every classifier, ordered by accuracy on this sample."
       + (f" The {'grey row' if n_base == 1 else count_word(n_base) + ' grey rows'} at the bottom "
-         f"{'is a simple rule' if n_base == 1 else 'are simple rules'}, not real models; they mark the floor any "
+         f"{'is a simple rule, not a real model; it marks' if n_base == 1 else 'are simple rules, not real models; they mark'} the floor any "
          "classifier should clear." if n_base else "") + "</p>")
-    w("<div class='table'><table><thead><tr><th class='l'>#</th><th class='l'>Classifier</th><th class='l'>Learned from</th>"
-      f"<th>Accuracy</th><th>Likely range</th><th>Time per {esc(noun)}</th><th>Memory</th></tr></thead><tbody>")
+    w("<div class='table'><table><thead><tr><th class='l'>#</th><th class='l'>Classifier</th><th class='l'>Approach</th>"
+      f"<th>Accuracy</th><th>95% CI</th><th>Average time per {esc(noun)} (batched)</th><th>Single request</th>"
+      "<th>Memory</th></tr></thead><tbody>")
     rank = 0
+    flagged = False
     for n_ in [r for r in ranked if r not in virtual] + [r for r in ranked if r in virtual]:
         m = metrics[n_]
         base = n_ in virtual
         if not base:
             rank += 1
         cls = "base" if base else ("top" if n_ in lead or n_ == best else "")
+        mark = ""
+        if not base and n_ in slow_conditions:
+            mark, flagged = "<sup>*</sup>", True
+        kind = "simple rule" if base else approach(n_) + (", remote" if remote(n_) else "")
+        lat = latency(metas[n_]) if n_ in metas else None
         w(f"<tr class='{cls}'><td class='l'>{'' if base else rank}</td><td class='l name'>{link(n_)}</td>"
-          f"<td class='l kind'>{esc(KIND_TEXT.get(supervision(n_), supervision(n_)))}</td>"
+          f"<td class='l kind'>{esc(kind)}</td>"
           f"<td><div class='bar'><span class='track'><span class='fill' style='width:{max(m['accuracy'], 0) * 100:.1f}%'>"
           f"</span></span>{pct(m['accuracy'])}</div></td>"
           f"<td>{pct(m['ci'][0])}–{pct(m['ci'][1])}</td>"
-          f"<td>{'–' if base else secs(time_of(n_))}</td><td>{'–' if base else size(mem_of(n_))}</td></tr>")
+          f"<td>{'–' if base else secs(time_of(n_)) + mark}</td><td>{'–' if base else secs(lat) + (mark if lat else '')}</td>"
+          f"<td>{'–' if base else size(mem_of(n_))}</td></tr>")
     w("</tbody></table></div>")
+    if flagged:
+        w("<p class='small'><sup>*</sup> Timed on battery or in Low Power Mode, so probably slower than it would be "
+          "plugged in.</p>")
     missing = [title(a) for a, e in apps.items() if not e.get("virtual") and a not in metrics]
     if missing:
         w(f"<p class='small'>Not included because they have no usable results for this test: {esc(join(missing))}.</p>")
@@ -312,44 +374,56 @@ def simple_page(*, task, summary: dict, primary: str, noun: str, apps: dict, met
     if len(timed) > 2:
         from stats import pareto_front
         front = pareto_front(timed)
-        times = sorted(t for _, t in timed.values())
+        fast = min(timed, key=lambda n_: timed[n_][1])
+        slow = max(timed, key=lambda n_: timed[n_][1])
         w("<h2>Speed versus accuracy</h2>")
-        w(f"<p>Accuracy is only half the story. The fastest classifier here needs {secs(times[0])} per {esc(noun)}; "
-          f"the slowest needs {secs(times[-1])}, roughly {rough(times[-1] / times[0])} times longer. As a rule, the "
-          "larger and more accurate models are also the slower ones, so picking a classifier means deciding how much "
-          "speed you are willing to trade for each extra point of accuracy.</p>")
-        w(f"<p>The {count_word(len(front))} classifiers below are the best trades on offer: for each of them, no other "
-          "classifier is both faster and more accurate. Any classifier not on this list is beaten on both counts by "
-          "at least one that is.</p>")
+        speed = []
+        if timed[slow][1] > 2 * timed[fast][1]:
+            speed.append(f"Average batched times range from {secs(timed[fast][1])} per {esc(noun)} ({esc(title(fast))}) to "
+              f"{secs(timed[slow][1])} ({esc(title(slow))}), a factor of about "
+              f"{rough(timed[slow][1] / timed[fast][1])}.")
+        both = [n_ for n_ in timed if n_ in timed_lat]
+        if both:
+            slower = [n_ for n_ in both if timed_lat[n_] > 2 * timed[n_][1]]
+            worst = max(both, key=lambda n_: timed_lat[n_] / timed[n_][1])
+            speed.append(f"These are throughput figures, not response times. Sent one {esc(noun)} at a time, "
+              f"{len(slower)} of the {len(both)} classifiers with both measurements took more than twice their batched "
+              f"average; the largest gap is {esc(title(worst))}, at {secs(timed[worst][1])} batched against "
+              f"{secs(timed_lat[worst])} for a single request.")
+        if speed:
+            w("<p>" + " ".join(speed) + "</p>")
+        w(f"<p>{count_word(len(front)).capitalize()} classifier{'s are' if len(front) != 1 else ' is'} on the "
+          "speed–accuracy frontier: no other classifier is both faster (batched) and more accurate. Every classifier "
+          "not listed is beaten on both counts by at least one that is.</p>")
         w("<ul class='plain'>" + "".join(
-            f"<li>{link(n_)}: {pct(acc(n_))} correct, {secs(time_of(n_))} per {esc(noun)}</li>" for n_ in front) + "</ul>")
-        w(f"<p class='small'>Times were measured on one machine and depend on hardware; treat them as a guide to the "
-          "relative speed of the classifiers rather than as exact figures.</p>")
+            f"<li>{link(n_)}: {pct(acc(n_))} correct, {secs(time_of(n_))} per {esc(noun)} batched"
+            + (f", {secs(timed_lat[n_])} single request" if n_ in timed_lat else "") + "</li>" for n_ in front) + "</ul>")
+        w(f"<p class='small'>All local times come from one machine{' (' + esc(env['machine']) + ')' if env.get('machine') else ''}; "
+          "the order of the faster classifiers can change on other hardware.</p>")
 
     # ---- hard labels
     real = [n_ for n_ in models]
     if real:
-        w(f"<h2>Where classifiers go wrong</h2>")
+        w("<h2>Where classifiers go wrong</h2>")
         if per_label >= 10:
             recall = {lab: sum(metrics[n_]["per_class"][lab]["recall"] for n_ in real) / len(real) for lab in labels}
             order = sorted(labels, key=lambda lab: recall[lab])
             if len(labels) <= 10:
-                w(f"<p>Some labels are harder to recognise than others. Averaged over all classifiers, this is how "
-                  f"often the {esc(nouns)} under each label were labeled correctly:</p>")
+                w(f"<p>Averaged over all classifiers, this is how often the {esc(nouns)} under each label were "
+                  "labeled correctly:</p>")
                 w("<div class='table'><table><thead><tr><th class='l'>Label</th><th>Labeled correctly</th></tr></thead><tbody>"
                   + "".join(f"<tr><td class='l'>{esc(label_names[lab])}</td><td><div class='bar'><span class='track'>"
                             f"<span class='fill' style='width:{recall[lab] * 100:.1f}%'></span></span>{pct(recall[lab])}"
                             "</div></td></tr>" for lab in reversed(order)) + "</tbody></table></div>")
             else:
-                w(f"<p>Some labels are much harder than others. Averaged over all classifiers, the hardest to "
-                  f"recognise were {join([f'<i>{esc(label_names[lab])}</i> ({pct(recall[lab])})' for lab in order[:5]])}, "
+                w(f"<p>Averaged over all classifiers, the hardest labels were "
+                  f"{join([f'<i>{esc(label_names[lab])}</i> ({pct(recall[lab])})' for lab in order[:5]])}, "
                   f"while {join([f'<i>{esc(label_names[lab])}</i>' for lab in order[-3:]])} were almost always "
                   "spotted.</p>")
         else:
             w(f"<p>With {len(labels)} labels and {n:,} {esc(nouns)}, each label appears only about "
-              f"{per_label:.0f} time{'s' if round(per_label) != 1 else ''} in this test, too few to say reliably which "
-              "labels are hardest. The mix-ups below are more telling.</p>")
-        # Most common mix-ups, summed over every classifier's confusion table.
+              f"{per_label:.0f} time{'s' if round(per_label) != 1 else ''} in this test, too few to say which "
+              "labels are hardest. The mix-ups below are more informative.</p>")
         total = None
         for n_ in real:
             cm = metrics[n_]["confusion"]
@@ -359,37 +433,61 @@ def simple_page(*, task, summary: dict, primary: str, noun: str, apps: dict, met
         if pairs:
             w(f"<p>The most common mix-ups, counted across all {len(real)} classifiers:</p><ul class='plain'>"
               + "".join(f"<li><i>{esc(label_names[t])}</i> {esc(nouns)} labeled as <i>{esc(label_names[p])}</i>: "
-                        f"{k:,} times, about {k / len(real):.1f} per classifier</li>" for k, t, p in pairs) + "</ul>")
-            w("<p>Mistakes like these tend to happen where the labels themselves overlap, and a person might "
-              "hesitate too.</p>")
+                        f"{k:,} time{'s' if k != 1 else ''}, made by {sum(1 for n_ in real if metrics[n_]['confusion'].at[t, p] > 0)} of the "
+                        f"{len(real)} classifiers</li>" for k, t, p in pairs) + "</ul>")
+            k, t, p = pairs[0]
+            back = int(total.at[p, t])
+            if any((t2, p2) == (p, t) for _, t2, p2 in pairs):
+                w(f"<p>The first mix-up also appears in reverse in this list, so <i>{esc(label_names[t])}</i> and "
+                  f"<i>{esc(label_names[p])}</i> overlap rather than one label absorbing the other.</p>")
+            elif back * 3 < k and k >= 10:
+                w(f"<p>The reverse of the first mix-up is much rarer ({back:,} time{'s' if back != 1 else ''}), so when unsure between the two, "
+                  f"classifiers lean towards <i>{esc(label_names[p])}</i>.</p>")
 
     # ---- trust
-    cert = {n_: metrics[n_]["at_target"][0.95]["certified"] for n_ in models
-            if (metrics[n_].get("at_target") or {}).get(0.95)}
-    top_gate = sorted((n_ for n_ in cert if cert[n_]["coverage"] > 0), key=lambda n_: -cert[n_]["coverage"])[:3]
-    if top_gate:
+    held = {n_: metrics[n_]["held_out"][0.95] for n_ in models if (metrics[n_].get("held_out") or {}).get(0.95)}
+    top_gate = sorted((n_ for n_ in held if held[n_]["met"] and held[n_]["coverage"] > 0),
+                      key=lambda n_: -held[n_]["coverage"])[:3]
+    if held:
+        methods = {h.get("method") for h in held.values()}
         w("<h2>Knowing when to trust an answer</h2>")
-        w(f"<p>Most classifiers also say how sure they are of each answer. That makes a useful working pattern "
-          f"possible: let the classifier handle the {esc(nouns)} it is confident about, and pass the rest to a person. "
-          "The question is how much work it can take on before mistakes creep in.</p>")
-        g = cert[top_gate[0]]
-        w(f"<p>Set the bar at 95% correct. {link(top_gate[0])} could handle {pct(g['coverage'])} of the {esc(nouns)} on "
-          f"its own and still meet that bar"
-          + (", followed by " + join([f"{link(n_)} ({pct(cert[n_]['coverage'])})" for n_ in top_gate[1:]])
-             if len(top_gate) > 1 else "")
-          + ". Note that a classifier's raw accuracy and its ability to judge its own answers are different skills: "
-          "the most accurate classifier is not always the best at knowing when it is right.</p>")
-        w("<p class='small'>The confidence cut-offs behind these figures were chosen on the same test "
-          f"{esc(nouns)}, so check them on new data before relying on them.</p>")
+        w(f"<p>A confidence score allows a split workflow: the classifier answers the {esc(nouns)} it is confident "
+          "about and passes the rest to a person. For each classifier, the confidence cut-off for a 95% accuracy target "
+          "was chosen on one set of " + esc(nouns) + " and then checked on different ones, so the figures below are "
+          "not tuned to the items they are measured on.</p>")
+        if top_gate:
+            g = held[top_gate[0]]
+            w(f"<p>{link(top_gate[0])} answered {pct(g['coverage'])} of the {esc(nouns)} on its own and was "
+              f"{pct(g['accuracy'])} correct on them"
+              + (", followed by " + join([f"{link(n_)} ({pct(held[n_]['coverage'])})" for n_ in top_gate[1:]])
+                 if len(top_gate) > 1 else "") + ".")
+            if best and top_gate[0] != best:
+                w(f" It is not the top scorer on this sample ({link(best)} is): ranking its own answers by "
+                  "confidence is a separate skill from getting them right.")
+            w("</p>")
+        else:
+            w(f"<p>No classifier reached 95% accuracy on the {esc(nouns)} it accepted once the cut-off was checked on "
+              "separate items.</p>")
+        if "cross-fitted" in methods:
+            w(f"<p class='small'>Cut-offs were chosen by cross-fitting: the sample was split in half, and each half was "
+              f"scored with the cut-off chosen on the other. With about {n // 2:,} {esc(nouns)} per half these figures "
+              "are rough; a separate calibration run gives firmer ones.</p>")
+        else:
+            w("<p class='small'>Cut-offs were chosen on a separate calibration sample (a second test-set sample with "
+              "no items in common with this one).</p>")
 
     # ---- caution
     w("<h2>Before you draw conclusions</h2><ul class='plain'>"
-      f"<li><b>The test is a sample.</b> {n:,} {esc(nouns)} is enough to separate good classifiers from poor ones, "
-      "but not to rank classifiers that are within a few points of each other.</li>"
+      f"<li><b>The test is a sample.</b> With {n:,} {esc(nouns)}, an accuracy near 90% is only known to within "
+      f"about ±{half:.0f} points. That separates good classifiers from poor ones, but not classifiers a few points "
+      "apart.</li>"
+      "<li><b>Scores describe this setup.</b> Some classifiers learned from labeled examples of this task and "
+      "others from none; some ran locally and others on a remote service. A higher score means better "
+      "under these conditions, not a better model in general.</li>"
       f"<li><b>Results belong to this task.</b> A classifier that does well on {esc(name)} may do worse on "
-      "different text or different labels; the other benchmark task can tell quite a different story.</li>"
-      "<li><b>Speed depends on hardware.</b> All timings come from one machine; on other hardware the order of the "
-      "faster classifiers may change.</li></ul>")
+      "different text or different labels; compare with the other benchmark task.</li>"
+      "<li><b>Speed depends on hardware and how the classifier is called.</b> Batched averages measure throughput, "
+      "and single-request times measure response time. Both come from one machine.</li></ul>")
 
     # ---- full report
     w("<section class='full'><h2>The full raw report</h2>"

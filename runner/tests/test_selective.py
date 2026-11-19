@@ -5,7 +5,8 @@ import numpy as np
 import pandas as pd
 
 from report import ece
-from selective import (accuracy_at_coverage, aurc, calibration_warnings, classwise_ece, coverage_at_target, curve,
+from selective import (accuracy_at_coverage, apply_threshold, aurc, calibration_warnings, classwise_ece,
+                       coverage_at_target, cross_fit_at_target, curve, fit_threshold, held_out_at_target,
                        expected_correct, groups, mce, reliability, top2_accuracy)
 from stats import wilson
 
@@ -126,3 +127,77 @@ class CalibrationTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HeldOutThresholdTest(unittest.TestCase):
+    """Thresholds fitted on one set of items and applied to another (phase 2, item 2)."""
+
+    def test_apply_threshold_counts(self):
+        r = apply_threshold(CONF, RIGHT, 0.5)  # five predictions at >= 0.5, three of them right
+        self.assertEqual((r["accepted"], r["correct"]), (5, 3))
+        self.assertAlmostEqual(r["coverage"], 5 / 6)
+        self.assertEqual(apply_threshold(CONF, RIGHT, None)["accepted"], 0)
+
+    def test_fit_matches_in_sample_selection(self):
+        g = groups(CONF, RIGHT)
+        self.assertEqual(fit_threshold(CONF, RIGHT, 0.6, certified=False),
+                         coverage_at_target(g, 0.6)["threshold"])
+
+    def test_held_out_scores_only_evaluation_items(self):
+        cal_conf, cal_right = [0.9] * 50 + [0.4] * 50, [True] * 50 + [False] * 50
+        r = held_out_at_target(cal_conf, cal_right, CONF, RIGHT, 0.9, certified=False)
+        self.assertEqual(r["threshold"], 0.9)
+        self.assertEqual((r["accepted"], r["n"], r["n_calibration"]), (3, 6, 100))
+        self.assertAlmostEqual(r["accuracy"], 2 / 3)
+        self.assertFalse(r["met"])  # the calibration sample's threshold misses the target on new items
+
+    def test_in_sample_threshold_overfits_and_cross_fitting_does_not(self):
+        # Pure noise: confidence carries no information, accuracy is 80% everywhere. The in-sample search still
+        # finds a "90%" threshold by luck; cross-fitting should not reproduce that coverage.
+        rng = np.random.default_rng(1)
+        conf, right = rng.random(400), rng.random(400) < 0.8
+        in_sample = coverage_at_target(groups(conf, right), 0.9)
+        crossed = cross_fit_at_target(conf, right, 0.9, certified=False)
+        self.assertGreaterEqual(in_sample["accuracy"], 0.9)  # in-sample always "meets" the target it was fitted to
+        self.assertLess(crossed["accuracy"], 0.9)  # held-out items show the real (lower) accuracy
+        self.assertFalse(crossed["met"])
+        self.assertEqual(crossed["method"], "cross-fitted")
+        self.assertEqual(crossed["n"], 400)
+
+    def test_cross_fit_is_deterministic(self):
+        rng = np.random.default_rng(2)
+        right = rng.random(400) < 0.85
+        conf = 0.5 * right + 0.5 * rng.random(400)  # informative confidence: right answers score higher
+        a, b = cross_fit_at_target(conf, right, 0.9), cross_fit_at_target(conf, right, 0.9)
+        self.assertGreater(a["accepted"], 0)
+        self.assertEqual((a["accepted"], a["thresholds"]), (b["accepted"], b["thresholds"]))
+
+
+class CalibrationFrameTest(unittest.TestCase):
+    """report.calibration_frame: another seed's run, minus items in the evaluation sample."""
+
+    def test_overlap_removed_and_eval_seed_ignored(self):
+        import tempfile
+        from pathlib import Path
+
+        from report import apply_held_out, calibration_frame
+        from selective import TARGETS
+        with tempfile.TemporaryDirectory() as tmp:
+            run = Path(tmp)
+            ev = pd.DataFrame({"sample_id": [1, 2, 3], "text": list("abc"), "label": ["x"] * 3, "pred": ["x"] * 3,
+                               "confidence": [0.9, 0.8, 0.7]})
+            cal = pd.DataFrame({"sample_id": [3, 4, 5, 6], "text": list("cdef"), "label": ["x"] * 4,
+                                "pred": ["x", "x", "y", "x"], "confidence": [0.9, 0.95, 0.2, 0.85]})
+            ev.to_csv(run / "eval.csv", index=False)
+            cal.to_csv(run / "cal.csv", index=False)
+            entry = {"runs": [{"seed": 42, "status": "ok", "csv": "eval.csv"},
+                              {"seed": 43, "status": "ok", "csv": "cal.csv"}]}
+            df, seed = calibration_frame(run, entry, ev, 42)
+            self.assertEqual(seed, 43)
+            self.assertEqual(sorted(df["sample_id"]), [4, 5, 6])  # item 3 is in the evaluation sample
+            self.assertIsNone(calibration_frame(run, {"runs": entry["runs"][:1]}, ev, 42))
+            m = {}
+            apply_held_out(m, ev, (df, seed))
+            self.assertEqual(set(m["held_out"]), set(TARGETS))
+            self.assertEqual(m["held_out"][0.9]["method"], "held-out")
+            self.assertEqual(m["held_out"][0.9]["n_calibration"], 3)

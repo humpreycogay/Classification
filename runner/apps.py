@@ -59,6 +59,16 @@ def model_slug(tag: str) -> str:
     return re.sub(r"[^A-Za-z0-9.-]+", "_", tag)
 
 
+# How each app learned the task, for grouping results (App.approach_on). Remote execution is a separate flag (App.remote).
+APPROACHES = {
+    "zero-shot": "No labeled examples of the task; works from the label names or descriptions",
+    "in-domain checkpoint": "A released model whose own training already included this task's data",
+    "classical supervised": "TF-IDF or embedding features with a linear or centroid classifier, fitted on the train split",
+    "fine-tuned encoder": "A pre-trained encoder fine-tuned on the train split",
+    "from scratch": "A neural network trained from random weights on the train split",
+}
+
+
 @dataclass(frozen=True)
 class App:
     name: str
@@ -98,6 +108,20 @@ class App:
     def supervision_on(self, task: str) -> str:
         """The app's type on a task: "in-domain trained" where the model saw the task's data in training."""
         return "in-domain trained" if task in self.trained_on_tasks else self.supervision
+
+    def approach_on(self, task: str) -> str:
+        """How the app came to know the task, finer than supervision_on (one of APPROACHES)."""
+        kind = self.supervision_on(task)
+        if kind == "in-domain trained":
+            return "in-domain checkpoint"
+        if kind == "zero-shot":
+            return "zero-shot"
+        folder = self.folder or self.name
+        if folder.startswith("scratch_"):
+            return "from scratch"
+        if folder.startswith("finetune_"):
+            return "fine-tuned encoder"
+        return "classical supervised"
 
     def training_overlap(self, task: str) -> str | None:
         """Why the app may not run a task it was trained on (test texts in its training data, or the overlap

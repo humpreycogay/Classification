@@ -418,13 +418,13 @@ GROUPS = [
     ("in-domain", "Models trained on benchmark data",
      "The training data of these released models includes at least one bundled task. On those tasks the report "
      "marks their results as in-domain, not zero-shot."),
-    ("supervised", "Supervised baselines",
+    ("supervised", "Classical supervised baselines",
      "These classifiers are fitted on the task's train split before they see any test text."),
     ("shortlist", "Two-stage shortlist variants",
      "BGE-M3 first reduces the label list to a fixed number of candidates. The model then chooses among those "
      "candidates. These entries exist for Banking77, which has more labels than the models accept."),
 ]
-GROUP_TYPE = {"zero-shot": "Zero-shot", "in-domain": "In-domain trained", "supervised": "Supervised",
+GROUP_TYPE = {"zero-shot": "Zero-shot", "in-domain": "In-domain checkpoint", "supervised": "Classical supervised",
               "shortlist": "Shortlist", "scratch": "Trained from scratch",
               "finetune": "Fine-tuned"}
 
@@ -1181,12 +1181,8 @@ def section_io(app) -> str:
 
 
 def benchmark_output() -> str:
-    return ("<p>The benchmark evaluator writes a CSV file of predictions to the entry's results folder. It has one row "
-            "per test text and these columns: <code>sample_id</code>, <code>text</code>, <code>label</code> (the true "
-            "label), <code>pred</code>, <code>confidence</code>, and one <code>p_&lt;label&gt;</code> column per label. "
-            "<code>runner/validate.py</code> checks that the rows match the expected sample, that every label is "
-            "known, that each row's probabilities sum to 1, and that <code>pred</code> has the highest "
-            "probability.</p>")
+    return ('<p>The benchmark evaluator writes one prediction CSV per run to the entry\'s results folder, in the format '
+            'described in <a href="index.html#shared">What every entry shares</a>.</p>')
 
 
 def choice_response(app, by_name: bool) -> str:
@@ -1280,8 +1276,7 @@ def wire_format(app) -> str:
             "server or HTTP request. The only network access is the one-time download during setup.</p>")
 
 
-def section_data(app) -> str:
-    return ("<p>Every entry receives the same data in the same way. This makes the results comparable.</p><ol>"
+SHARED_DATA = ("<p>Every entry receives the same data in the same way, which is what makes the results comparable.</p><ol>"
             "<li><code>shared/task.py</code> loads the task manifest, <code>data/tasks/ag_news.json</code> or "
             "<code>data/tasks/banking77.json</code>.</li>"
             "<li>On first use it downloads the CSV files named in the manifest, if they are not present, and verifies "
@@ -1304,7 +1299,70 @@ def section_data(app) -> str:
             "<td>30 rows per label</td></tr></tbody></table>"
             "<p>To use your own data, copy a manifest in <code>data/tasks/</code>, give the train and test files or URLs "
             "with their checksums, map every raw label to an ID, and write a short description for each label that "
-            "separates it from the others. Only single-label classification is supported.</p>")
+            "separates it from the others. Only single-label classification is supported.</p>"
+            "<h3>Benchmark output</h3>"
+            "<p>The benchmark evaluator writes a CSV file of predictions to the entry's results folder. It has one row "
+            "per test text and these columns: <code>sample_id</code>, <code>text</code>, <code>label</code> (the true "
+            "label), <code>pred</code>, <code>confidence</code>, and one <code>p_&lt;label&gt;</code> column per label. "
+            "<code>runner/validate.py</code> checks that the rows match the expected sample, that every label is "
+            "known, that each row's probabilities sum to 1, and that <code>pred</code> has the highest "
+            "probability.</p>"
+            "<h3>Running options</h3>"
+            "<p><code>--n 0</code> runs the whole test split. <code>--seed N</code> draws a different but reproducible "
+            "sample. <code>--dry-run</code> prints the resolved command without running it. Options for the adapter "
+            "itself go after <code>--</code>. <code>./run all</code> runs entries and then rebuilds the report; "
+            "<code>./run report</code> rebuilds it from results that already exist.</p>"
+            "<h3>Reading the results</h3>"
+            "<p>Accuracy tells you how often the top label was correct, not which labels a model confuses; the report "
+            "adds a confusion matrix, per-class scores, calibration, latency, memory and selective prediction. Compare "
+            "two runs only when the task, sample size, seed and model revision are the same. A high confidence value "
+            "does not guarantee a correct answer.</p>"
+            "<h3>Common problems</h3><ul>"
+            "<li><code>./run list --task ag_news</code> shows whether each entry is ready and, if not, why.</li>"
+            "<li>Run <code>./run setup &lt;name&gt;</code> again after changing Python or dependencies.</li>"
+            "<li><code>.env.example</code> lists each entry's host, model, device, key and context settings.</li>"
+            "<li><code>ModuleNotFoundError: No module named 'task'</code> (or <code>'training'</code>) when running "
+            "<code>classifier.py</code> directly means <code>PYTHONPATH=../../shared</code> is missing.</li>"
+            "<li>Out-of-memory errors, truncated options and unreachable services are setup problems, not measures of "
+            "model quality.</li></ul>")
+
+
+def approach_text(app) -> str:
+    """The entry's comparison category on each task (the same categories as the score reports)."""
+    by_task = {t: app.approach_on(t) for t in ("ag_news", "banking77")}
+    if len(set(by_task.values())) == 1:
+        return by_task["ag_news"]
+    return "; ".join(f"{v} on {TASK_NAMES[t]}" for t, v in by_task.items())
+
+
+TASK_NAMES = {"ag_news": "AG News", "banking77": "Banking77"}
+
+
+def section_data(app) -> str:
+    """What this entry learns from each task's data; the shared preparation steps are on the index page."""
+    kind = app.supervision
+    if app.trained_on_tasks:
+        seen = " and ".join(TASK_NAMES.get(t, t) for t in app.trained_on_tasks)
+        every = set(app.trained_on_tasks) >= set(TASK_NAMES)
+        fits = (f"Nothing is fitted for the benchmark. The released checkpoint already saw {seen} data in its own "
+                "training, so the reports list it as an in-domain checkpoint on "
+                + ("both bundled tasks." if every else "that task and as zero-shot on the other."))
+    elif kind == "supervised":
+        fits = "It is fitted on the task's train split before any test text is classified."
+    elif confidence_kind(app) == "task":
+        fits = ("Its decision uses only the label descriptions. One confidence temperature is fitted on the fixed "
+                "labeled calibration sample from the train split, so its accuracy is zero-shot but its confidence "
+                "figures are task-calibrated.")
+    else:
+        fits = "Nothing is fitted on task data: it decides from the label names and descriptions alone."
+    limit = (f" It accepts at most {app.max_labels} labels per request, so Banking77 (77 labels) runs only through a "
+             "shortlist entry." if app.max_labels and app.max_labels < 77 and not app.shortlist else "")
+    if app.shortlist:
+        limit = (f" An embedding model first narrows the labels to {app.shortlist} candidates, and this entry chooses "
+                 "among them.")
+    return (f"<p>Approach in the score reports: <b>{h(approach_text(app))}</b>. {fits}{limit}</p>"
+            '<p>The data preparation, sampling and calibration sample sizes are the same for every entry: see '
+            '<a href="index.html#shared">What every entry shares</a>.</p>')
 
 
 def section_run(app) -> str:
@@ -1313,13 +1371,10 @@ def section_run(app) -> str:
     if not app.shortlist and not (app.max_labels and app.max_labels < 77):
         cmds += f"\n./run {app.name} --task banking77 --n 200"
     return (code(cmds, "shell")
-            + "<p><code>--n 0</code> runs the whole test split. <code>--seed N</code> draws a different but "
-              "reproducible sample. <code>--dry-run</code> prints the resolved command without running it. Options "
-              "for the adapter itself go after <code>--</code>.</p>"
             + "<h3>Inside the full benchmark</h3>"
             + code(f"./run all --task {task} --only {app.name}\n./run report --task {task}", "shell")
-            + "<p>The first command runs only this entry and then rebuilds the report. The second rebuilds the report "
-              "from results that already exist.</p>")
+            + '<p>Options such as <code>--n</code>, <code>--seed</code> and <code>--dry-run</code> are described in '
+              '<a href="index.html#shared">What every entry shares</a>.</p>')
 
 
 def section_training(app) -> str:
@@ -1377,24 +1432,20 @@ def section_training(app) -> str:
 def section_results(app) -> str:
     extra = ""
     if app.trained_on_tasks:
-        extra = (f" On {' and '.join(app.trained_on_tasks)} the report labels this entry \"in-domain trained\" instead of "
-                 f"\"zero-shot\".")
-    return ("<p>Accuracy tells you how often the top label was correct. It does not tell you which labels the model "
-            "confuses. For that, the report also shows a confusion matrix, scores per class, calibration and error "
-            "analysis, latency, memory use, and selective prediction (accuracy when only confident answers are kept). "
-            "Compare two runs only when the task, sample size, seed and model revision are the same." + extra + "</p>"
-            f"<p>A high confidence value does not guarantee a correct answer. For this entry, confidence is defined as: "
-            f"<strong>{h(app.confidence)}</strong>.</p>"
+        extra = (f" On {' and '.join(TASK_NAMES.get(t, t) for t in app.trained_on_tasks)} the reports list it as an "
+                 "in-domain checkpoint, not as zero-shot.")
+    return (f"<p>This entry's confidence is <strong>{h(app.confidence)}</strong>.{confidence_caveat(app)}"
+            + extra + "</p>"
+            + ("<p>It runs on a remote service, so its timings include the network and hardware outside the test "
+               "machine.</p>" if app.remote else "")
+            + '<p>How to read accuracy, confidence and the other measures is described once in '
+              '<a href="index.html#shared">What every entry shares</a>.</p>'
             f'<p class="reports">{report_links()}</p>')
 
 
 def section_trouble(app) -> str:
-    items = [f"<code>./run list --task ag_news</code> shows whether the entry is ready and, if not, why.",
-             f"Run <code>./run setup {h(app.name)}</code> again after changing Python or dependencies.",
-             "Check <code>.env.example</code> for this entry's host, model, device, key and context settings.",
-             f"<code>./run {h(app.name)} --dry-run</code> shows the arguments the runner passes.",
-             "<code>ModuleNotFoundError: No module named 'task'</code> (or <code>'training'</code>) when running "
-             "<code>classifier.py</code> directly means <code>PYTHONPATH=../../shared</code> is missing."]
+    items = [f"<code>./run {h(app.name)} --dry-run</code> shows the arguments the runner passes to this entry.",
+             f"Run <code>./run setup {h(app.name)}</code> again after changing Python or dependencies."]
     if app.max_labels and app.max_labels < 77:
         items.append("If Banking77 is refused because it has too many labels, use the <code>_shortlist</code> entry "
                      "when one exists.")
@@ -1403,9 +1454,9 @@ def section_trouble(app) -> str:
     if app.needs == "ollama" or app.ollama_model or app.extra_ollama:
         items.append("\"Ollama not reachable\" means Ollama is not running at the configured host. \"not pulled\" "
                      "means the model tag must be pulled first.")
-    items.append("Out-of-memory errors, truncated options and unreachable services are setup problems, not measures "
-                 "of model quality.")
-    return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
+    return ("<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
+            + '<p>Problems common to every entry are listed in <a href="index.html#shared">What every entry '
+              'shares</a>.</p>')
 
 
 SECTIONS = [
@@ -1414,10 +1465,10 @@ SECTIONS = [
     ("download", "Getting the model", section_download),
     ("install", "Installing from a clean checkout", section_install),
     ("io", "Sending data and reading results", section_io),
-    ("data", "How the benchmark prepares data", section_data),
+    ("data", "What it learns from the task", section_data),
     ("run", "Running the benchmark", section_run),
     ("training", "Training and adaptation", section_training),
-    ("results", "Reading the results", section_results),
+    ("results", "Its results and confidence", section_results),
     ("trouble", "When something goes wrong", section_trouble),
 ]
 
@@ -1429,7 +1480,7 @@ def model_page(app, index: int) -> str:
                   for i, (sid, name, _) in enumerate(SECTIONS, 1))
     body = "".join(f'<section id="{sid}"><p class="secnum">{i:02d}</p><h2>{h(name)}</h2>{fn(app)}</section>'
                    for i, (sid, name, fn) in enumerate(SECTIONS, 1))
-    meta = [("Registry name", f"<code>{h(app.name)}</code>"), ("Type", h(GROUP_TYPE[group(app)])),
+    meta = [("Registry name", f"<code>{h(app.name)}</code>"), ("Approach", h(approach_text(app))),
             ("Runs on", h(app.runs_on)), ("Label limit", h(label_limit(app))), ("Confidence", conf_badge(app))]
     meta_html = "".join(f'<div><span class="num">{i:03d}</span><span class="k">{k}</span><span class="v">{v}</span></div>'
                         for i, (k, v) in enumerate(meta, 1))
@@ -2562,17 +2613,23 @@ INTRO = [
      "<p>Every entry goes through the same steps, so their results can be compared on the same texts. The diagram "
      "separates the paths that can change a model's decision from the path that only calibrates its confidence. The "
      "score reports link here from their type notes.</p>" + pipeline_diagram()),
+    ("shared", "What every entry shares", SHARED_DATA),
     ("kinds", "How the models differ",
      "<p><b>Zero-shot</b> models decide without fitting their weights or label ranking on task examples. They read "
      "the label descriptions and decide. Changing the labels needs no training, so the quality of the descriptions "
      "matters. Some use labeled training examples solely to fit a confidence temperature; their accuracy remains "
      "zero-shot, but their confidence and calibration metrics are task-calibrated (see "
      "<a href=\"#confidence\">What the confidence numbers mean</a>).</p>"
-     "<p><b>In-domain trained</b> models are released checkpoints whose training data includes a bundled task. Their "
+     "<p><b>In-domain checkpoints</b> are released models whose training data includes a bundled task. Their "
      "scores on that task are reported separately, because they have seen similar texts before.</p>"
-     "<p><b>Supervised</b> baselines, such as TF-IDF with logistic regression, are fitted on the task's own train "
-     "split. They show what a small, conventional model reaches with labelled data, and they are the reference the "
-     "other models are compared with.</p>"
+     "<p><b>Classical supervised</b> baselines, such as TF-IDF with logistic regression or embeddings with a linear "
+     "classifier, are fitted on the task's own train split. They show what a small, conventional model reaches with "
+     "labelled data.</p>"
+     "<p><b>Fine-tuned encoders</b> are pre-trained language models adapted to the task's train split, and models "
+     "trained <b>from scratch</b> learn only from that split, starting from random weights.</p>"
+     "<p>The score reports use these five approaches to group results, because a ranking across them compares "
+     "different amounts of task data as much as different models. Entries that run on a <b>remote</b> service are "
+     "flagged separately, because their timings include the network.</p>"
      "<p><b>Shortlist</b> variants handle tasks with more labels than a model accepts. An embedding model first keeps "
      "the most similar labels, and the main model chooses among them.</p>"),
     ("confidence", "What the confidence numbers mean",

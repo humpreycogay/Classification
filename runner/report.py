@@ -45,10 +45,10 @@ import pandas as pd
 import perf
 import shared_path  # noqa: F401  (puts shared/ on sys.path)
 import task as tasks
-from apps import APPS, APPS_BY_NAME, CONFIDENCE_KINDS, confidence_kind
+from apps import APPROACHES, APPS, APPS_BY_NAME, CONFIDENCE_KINDS, confidence_kind
 from simple_report import FULL_HREF, simple_page
 from selective import (COVERAGES, MCE_MIN_BIN, MIN_N_FOR_99, SATURATED, TARGETS, calibration_warnings,
-                       selective_metrics)
+                       held_out_at_target, selective_metrics)
 from stats import (ALPHA, BOOTSTRAP_REPLICATES, BOOTSTRAP_SEED, bootstrap_metrics, holm, leading_tier, rank_intervals,
                    paired_difference, pareto_front, percentile_ci, resample_weights, wilson)
 
@@ -161,6 +161,43 @@ def app_metrics(df: pd.DataFrame) -> dict:
         m["log_loss"] = float(-pd.Series(p_true).apply(math.log).mean())
     m.update(selective_metrics(df, LABELS))  # tie-aware curve, AURC, targets, calibration, top-2
     return m
+
+
+def calibration_frame(run_dir: Path, entry: dict, eval_df: pd.DataFrame, eval_seed: int) -> tuple[pd.DataFrame, int] | None:
+    """Another seed's predictions from the same app, minus any item also in the evaluation sample.
+
+    Used to choose selective-prediction thresholds on items the evaluation never scores. Returns (frame, seed), or
+    None when the run has no other seed with valid results.
+    """
+    for r in entry.get("runs", []):
+        if r.get("seed") != eval_seed and r.get("status") in ("ok", "existing") and r.get("csv"):
+            path = run_dir / r["csv"]
+            if not path.exists():
+                continue
+            df = pd.read_csv(path)
+            key = "sample_id" if "sample_id" in df.columns and "sample_id" in eval_df.columns else "text"
+            df = df[~df[key].isin(set(eval_df[key]))]
+            if len(df):
+                return df, r["seed"]
+    return None
+
+
+def apply_held_out(m: dict, eval_df: pd.DataFrame, cal: tuple[pd.DataFrame, int] | None) -> None:
+    """Replace the cross-fitted held-out results with thresholds fitted on a separate calibration sample."""
+    if cal is None:
+        return
+    cal_df, seed = cal
+    cal_conf, cal_right = cal_df["confidence"].astype(float), cal_df["label"] == cal_df["pred"]
+    conf, right = eval_df["confidence"].astype(float), eval_df["label"] == eval_df["pred"]
+    m["held_out"] = {t: {**held_out_at_target(cal_conf, cal_right, conf, right, t), "calibration_seed": seed}
+                     for t in TARGETS}
+
+
+def held_out_txt(r: dict) -> str:
+    """How a held-out result's threshold was chosen, in a few words."""
+    if r.get("method") == "held-out":
+        return f"threshold fitted on seed {r['calibration_seed']} (n = {r['n_calibration']}), scored on this sample"
+    return f"{r.get('folds', 2)}-fold cross-fitted: each half scored with the threshold fitted on the other half"
 
 
 # ---------------------------------------------------------------- formatting
@@ -665,7 +702,12 @@ def speed_scatter(points: list[dict]) -> str:
         svg.append(f'<text class="lbl" x="{lx:.1f}" y="{ly:.1f}" text-anchor="{anchor}">{names}</text>')
     svg.append("</svg>")
     legend = ["<ul class='legend'>"]
-    for p in sorted(points, key=lambda p: -p["acc"]):
+    order = list(APPROACHES)
+    group = None
+    for p in sorted(points, key=lambda p: (order.index(p["kind"]) if p["kind"] in order else len(order), -p["acc"])):
+        if p["kind"] != group:  # one heading per approach, so like is compared with like
+            group = p["kind"]
+            legend.append(f"<li class='grp'>{esc(group)}</li>")
         legend.append(f"<li data-key='{esc(p['key'])}' data-tip='{esc(p['name'])}: {pct(p['acc'])}, "
                       f"{secs(p['per_item'])} per item' tabindex='0'><svg viewBox='0 0 18 18' width='18' height='18' "
                       f"aria-hidden='true'>{scatter_mark(p['style'], 9, 9.5, 6)}</svg>{esc(p['name'])}</li>")
@@ -707,6 +749,7 @@ th:first-child, td:first-child { text-align: left; }
 td.l, th.l { text-align: left; white-space: normal; }
 td.nw { white-space: nowrap; }
 tr.best td, tr.lead td { font-weight: 600; }
+.legend li.grp { grid-column: 1 / -1; font-weight: 600; color: var(--text-2); cursor: default; margin-top: 4px; }
 .pill.lead { color: var(--series); border-color: var(--series); font-weight: 600; }
 .dot.dim { fill: var(--muted); opacity: .55; }
 .frontier { stroke-dasharray: 4 3; }
@@ -858,6 +901,7 @@ def build_report(run_dir: Path, also: tuple[tuple[Path, Path], ...] = ()) -> Pat
     excluded = {name: (frames.pop(name), metas.pop(name, {})) for name in incompatible}
     for name, df in frames.items():
         metrics[name] = app_metrics(df)
+        apply_held_out(metrics[name], df, calibration_frame(run_dir, apps[name], df, (summary.get("seeds") or [summary["seed"]])[0]))
     mismatched = list(incompatible)
     missing_probs = [n for n, m in metrics.items() if not m["has_probs"]]
     missing_meta = [n for n in metrics if n not in metas]
@@ -902,6 +946,7 @@ def build_report(run_dir: Path, also: tuple[tuple[Path, Path], ...] = ()) -> Pat
                                  "correction": "Holm", "family": [n for n in models if n != best]},
         "top_point_estimate": best, "leading_tier": lead,
         "leading_tier_rule": "95% paired-bootstrap rank interval includes rank 1",
+        "selective_thresholds": {n: metrics[n]["held_out"][0.95].get("method") for n in metrics},
         "rank_intervals": ranks,
     }
 
@@ -913,9 +958,18 @@ def build_report(run_dir: Path, also: tuple[tuple[Path, Path], ...] = ()) -> Pat
     # The registry's current confidence definition; older summaries keep the text they were written with.
     conf_text = lambda n: reg(n).confidence if reg(n) else apps[n]["confidence"]  # noqa: E731
 
+    def approach(n: str) -> str:
+        if apps[n].get("virtual"):
+            return "virtual"
+        return apps[n].get("approach") or (reg(n).approach_on(task.name) if reg(n) else supervision(n))
+
+    def is_remote(n: str) -> bool:
+        return bool(apps[n].get("remote", reg(n).remote if reg(n) else False))
+
     def type_txt(n: str) -> str:
-        t = supervision(n)
-        return t + (" · task-calibrated conf." if t == "zero-shot" and conf_kind(n) == "task" else "")
+        t = approach(n)
+        return (t + (" · remote" if is_remote(n) else "")
+                + (" · task-calibrated conf." if t == "zero-shot" and conf_kind(n) == "task" else ""))
 
     def conf_badge(n: str) -> str:
         k = conf_kind(n)
@@ -989,12 +1043,14 @@ def build_report(run_dir: Path, also: tuple[tuple[Path, Path], ...] = ()) -> Pat
     # Accuracy vs speed scatter: the first chart, one mark per classifier (see speed_scatter).
     styles = {n: i for i, n in enumerate(n for n, a in apps.items() if not a.get("virtual"))}  # registry order
     scatter = [{"key": n, "name": title(n), "acc": metrics[n]["accuracy"], "per_item": per_item(metas[n]),
-                "style": styles.get(n, len(styles)), "kind": supervision(n)}
+                "style": styles.get(n, len(styles)), "kind": approach(n)}
                for n in models if n in metas and per_item(metas[n])]
     if len(scatter) > 1:
         w("<h2 id='speed-accuracy'>Speed vs accuracy</h2><p class='note'>One mark per classifier: further right is "
           "more accurate, higher is faster (items per second with each app's own batching or concurrency, log "
-          "scale), so the top-right corner is best. Each classifier has its own color and shape; hover a mark for "
+          "scale), so the top-right corner is best. The legend is grouped by approach (zero-shot, in-domain checkpoint, "
+          "classical supervised, fine-tuned encoder, from scratch): a rank across groups compares different amounts of "
+          "task data and training, not only model quality. Each classifier has its own color and shape; hover a mark for "
           "its name and values, or a name in the legend to find its mark. Exact values are in the Overview table below."
           + (f" Not plotted (no timings): {esc(', '.join(title(n) for n in models if n not in {p['key'] for p in scatter}))}."
              if len(scatter) < len(models) else "") + "</p>")
@@ -1005,8 +1061,9 @@ def build_report(run_dir: Path, also: tuple[tuple[Path, Path], ...] = ()) -> Pat
     not_run = [n for n, a in apps.items() if not a.get("virtual") and n not in frames]
     n_real = sum(1 for a in apps.values() if not a.get("virtual"))
     fastest = min(metas, key=lambda n: per_item(metas[n])) if metas else None
-    cert95 = lambda n: metrics[n]["at_target"][0.95]["certified"]  # noqa: E731
-    best_gate = max(models, key=lambda n: cert95(n)["coverage"]) if models else None
+    held95 = lambda n: metrics[n]["held_out"][0.95]  # noqa: E731
+    gate_ok = [n for n in models if held95(n)["met"]]  # held-out accuracy actually reached 95%
+    best_gate = max(gate_ok, key=lambda n: held95(n)["coverage"]) if gate_ok else None
     w("<div class='tiles'>")
     w(f"<div class='card tile'><div class='k'>Apps with results</div><div class='v'>{len(ok)} / {n_real}</div>"
       f"<div class='s'>{esc('no comparable results: ' + ', '.join(not_run)) if not_run else 'all apps'}</div></div>")
@@ -1023,13 +1080,13 @@ def build_report(run_dir: Path, also: tuple[tuple[Path, Path], ...] = ()) -> Pat
              + ("; every Holm p < 0.05" if all((metrics[n].get("holm") or 1) < ALPHA for n in models if n != best)
                 else "") if len(models) > 1 else "") + "</div></div>")
     if fastest:
-        w(f"<div class='card tile'><div class='k'>Fastest per item</div><div class='v'>{secs(per_item(metas[fastest]))}</div>"
+        w(f"<div class='card tile'><div class='k'>Fastest average time per item (batched throughput)</div><div class='v'>{secs(per_item(metas[fastest]))}</div>"
           f"<div class='s'>{esc(title(fastest))}, {pct(metrics[fastest]['accuracy'])} accuracy</div></div>")
-    if best_gate and cert95(best_gate)["coverage"] > 0:
-        g = cert95(best_gate)
-        w(f"<div class='card tile'><div class='k'>Most auto-accepted at 95% accuracy</div><div class='v'>{pct(g['coverage'])}</div>"
-          f"<div class='s'>{esc(title(best_gate))}: confidence ≥ {num(g['threshold'], 3)} keeps {g['accepted']} articles, "
-          f"{pct(g['accuracy'])} correct, selected-sample Wilson lower bound ≥ 95% (threshold chosen on this sample)</div></div>")
+    if best_gate and held95(best_gate)["coverage"] > 0:
+        g = held95(best_gate)
+        w(f"<div class='card tile'><div class='k'>Most auto-accepted at 95% accuracy (held-out)</div><div class='v'>{pct(g['coverage'])}</div>"
+          f"<div class='s'>{esc(title(best_gate))}: {g['accepted']} {noun}s accepted, {pct(g['accuracy'])} correct; "
+          f"{esc(held_out_txt(g))}</div></div>")
     w("</div>")
 
     # Overview table
@@ -1038,20 +1095,25 @@ def build_report(run_dir: Path, also: tuple[tuple[Path, Path], ...] = ()) -> Pat
       "difference in paired error rates after correcting for the report's multiple comparisons. <b>Bootstrap leading "
       "tier</b> = apps whose percentile bootstrap rank interval includes rank 1 under this report's resampling rule. This "
       "is an uncertainty summary, not a test that the apps are equivalent or statistically tied; none is declared the "
-      "winner. Type: <b>zero-shot</b> apps make their decision without fitting on this task's labels; those marked "
+      "winner. Results describe each app under this run's training data, hardware and settings, not a general "
+      "ranking. Type is the app's approach: " + "; ".join(f"<b>{esc(k)}</b>: {esc(v.lower())}" for k, v in APPROACHES.items())
+      + "; <b>remote</b> apps run on another machine, so their timings include the network. "
+      "<b>zero-shot</b> apps make their decision without fitting on this task's labels; those marked "
       "<i>task-calibrated conf.</i> fit only a softmax temperature on labeled train rows, so their accuracy is "
       "zero-shot but their ECE, Brier, log loss and selective-prediction results are task-calibrated "
       f"(<a href='{MODELS_HREF}/index.html#pipeline'>how the benchmark runs a model</a>). "
       "<b>Confidence</b>: what the confidence score is (see <a href='#defs-confidence'>Definitions</a>). "
-      "<b>Auto-accept</b>: largest coverage whose selected-sample Wilson lower bound is at least 95%; the threshold "
-      "is chosen on this sample, so validate it on independent data before deployment; <b>supervised</b> baselines are trained on the task's train split (never the test "
+      "<b>Auto-accept</b>: share of items accepted by a confidence threshold that was fitted on <i>other</i> items "
+      "(a separate calibration sample when the run has a second seed, otherwise 2-fold cross-fitting) with the rule "
+      "'Wilson 95% lower bound ≥ 95%'; shown only when the accepted items were in fact ≥ 95% correct "
+      "(see <a href='#selective'>Selective prediction</a>); <b>supervised</b> baselines are trained on the task's train split (never the test "
       "set); <b>in-domain trained</b> models are zero-shot elsewhere but saw this task's data in their own training "
       "(checked for test-text overlap at setup); <b>virtual</b> rows are trivial predictors generated by the runner (no model was run) and are never ranked "
       "best.</p>")
     w("<div class='card scroll'><table><thead><tr><th>App</th><th class='l'>Type</th><th class='l'>Runs on</th>"
       "<th>Accuracy</th><th>95% CI</th>"
       "<th>Macro F1</th><th>Top-2</th><th>p (Holm)</th><th>Per item</th><th>Items/s</th>"
-      "<th>Auto-accept coverage (Wilson LB ≥ 95%)</th><th>AUROC</th><th>E-AURC</th><th>ECE</th><th class='l'>Confidence</th><th class='l'>Execution</th></tr></thead><tbody>")
+      "<th>Auto-accept coverage at 95% (held-out)</th><th>AUROC</th><th>E-AURC</th><th>ECE</th><th class='l'>Confidence</th><th class='l'>Execution</th></tr></thead><tbody>")
     for name in ranked:
         m, meta = metrics[name], metas.get(name, {})
         p_txt = "top" if name == best else p_cell(m.get("holm"), ALPHA)
@@ -1062,7 +1124,7 @@ def build_report(run_dir: Path, also: tuple[tuple[Path, Path], ...] = ()) -> Pat
           f"<td>{pct(m['accuracy'])}</td><td>{pct(m['ci'][0])}–{pct(m['ci'][1])}</td><td>{num(m['macro_f1'])}</td>"
           f"<td>{pct(m['top2'])}</td>"
           f"<td>{p_txt}</td><td>{secs(per_item(meta))}</td><td>{num(meta.get('items_per_second'), 1)}</td>"
-          f"<td>{pct(m['at_target'][0.95]['certified']['coverage'])}</td><td>{num(m['auroc'])}</td>"
+          f"<td>{pct(m['held_out'][0.95]['coverage']) if m['held_out'][0.95]['met'] else '–'}</td><td>{num(m['auroc'])}</td>"
           f"<td>{num(m['eaurc'])}</td><td>{num(m['ece'])}</td>"
           f"<td class='l nw'>{conf_badge(name)}</td><td class='l nw'>{esc(execution(name))}</td></tr>")
     w("</tbody></table></div>")
@@ -1439,21 +1501,32 @@ def build_report(run_dir: Path, also: tuple[tuple[Path, Path], ...] = ()) -> Pat
           "app scales its confidence. <b>AURC</b>: average error rate of the accepted predictions over every coverage "
           "(lower is better); <b>E-AURC</b>: AURC minus that of a perfect ordering, i.e. the part caused by the "
           "confidence ranking itself (lower is better, 0 = perfect). <b>Coverage at target</b>: the largest share an "
-          "actual threshold can auto-accept with accuracy ≥ the target. <i>Optimistic</i> picks the threshold on these "
-          "same test articles, so it overstates what a threshold fixed in advance would achieve; <i>Wilson LB</i> "
-          "requires the Wilson 95% lower bound to reach the target; the threshold is still selected on this sample, so "
-          "the bound is not a guarantee for future or shifted data. Validate a chosen threshold on an independent "
-          "calibration or validation set before deployment. <b>Accuracy at coverage</b>: accuracy of the most "
+          "actual threshold can auto-accept with accuracy ≥ the target. <b>Held-out</b> (the figure to use): the threshold "
+          "is fitted on items this table does not score, with the rule 'Wilson 95% lower bound ≥ target', then "
+          "applied unchanged to this sample; the cell shows the coverage and the accuracy the accepted items actually "
+          "had (✗ = the target was missed on these items). The fitting items are a separate calibration sample (a "
+          "second seed's run, with any overlapping items removed) when the run has one, otherwise 2-fold "
+          "cross-fitting on this sample. <i>In-sample</i> columns pick the threshold on the same items they score "
+          "(point estimate, or Wilson lower bound); they overstate what a threshold fixed in advance achieves and are "
+          "kept only for comparison. <b>Accuracy at coverage</b>: accuracy of the most "
           "confident share; † = that share falls inside a group of equal confidences, so no threshold gives exactly it "
           "(expected accuracy in random order is shown)."
           + ("" if n_items >= MIN_N_FOR_99 else f" The 99% target is omitted: at n = {n_items} even a perfect accepted set "
              f"cannot show 99% (run the common or full tier).") + "</p>")
         w("<div class='card scroll'><table><thead><tr><th>App</th><th>AURC</th><th>E-AURC</th><th>Largest tie</th>"
-          + "".join(f"<th>Cov. at {tg:.0%}<br>optimistic</th><th>Cov. at {tg:.0%}<br>Wilson LB</th>" for tg in targets)
+          + "".join(f"<th>Cov. at {tg:.0%}<br>held-out</th>" for tg in targets)
+          + "".join(f"<th>Cov. at {tg:.0%}<br>in-sample (optimistic)</th><th>Cov. at {tg:.0%}<br>in-sample Wilson LB</th>"
+                    for tg in targets)
           + "".join(f"<th>Acc. at {c:.0%}</th>" for c in COVERAGES) + "</tr></thead><tbody>")
         for n in sorted(ranked, key=lambda n: metrics[n]["aurc"]):
             m = metrics[n]
             cells = ""
+            for tg in targets:
+                h = m["held_out"][tg]
+                tip = (f"{h['accepted']} of {h['n']} accepted, {pct(h['accuracy'])} correct; {held_out_txt(h)}"
+                       if h["accepted"] else f"no threshold accepted any item; {held_out_txt(h)}")
+                cells += (f"<td data-tip='{esc(tip)}'>{pct(h['coverage'])}"
+                          + ("" if h["met"] or not h["accepted"] else " ✗") + "</td>")
             for tg in targets:
                 for kind in ("optimistic", "certified"):
                     r = m["at_target"][tg][kind]
@@ -1493,8 +1566,14 @@ def build_report(run_dir: Path, also: tuple[tuple[Path, Path], ...] = ()) -> Pat
 
     # Per-class
     if models:
+        per_label = n_items / len(LABELS)
         w("<h2 id='classes'>Per-class F1</h2><p class='note'>Precision / recall / F1 per label; hover a cell for precision "
-          "and recall.</p><div class='card scroll'><table><thead><tr><th>App</th>"
+          "and recall.</p>"
+          + (f"<div class='warn'><strong>About {per_label:.0f} items per label:</strong> each per-class score rests on "
+             "a handful of items, so a single error moves it by a large step. Use these cells to spot gross failures, "
+             "not to compare classifiers on a label (run the common or full tier for that).</div>"
+             if per_label < 10 else "")
+          + "<div class='card scroll'><table><thead><tr><th>App</th>"
           + "".join(f"<th>{esc(l)}</th>" for l in LABELS) + "<th>Macro F1</th></tr></thead><tbody>")
         for n in models:
             pc = metrics[n]["per_class"]
@@ -1717,6 +1796,9 @@ so one-hot outputs score as chance for the second slot.</li>
     simple = simple_page(task=task, summary=summary, primary=primary, noun=noun, apps=apps, metrics=metrics,
                          metas=metas, ranked=ranked, models=models, virtual=virtual, lead=lead, best=best,
                          title=title, link=link, supervision=supervision, per_item=per_item,
+                         approach=approach, remote=is_remote,
+                         latency=lambda meta: perf.interactive(meta).get("p50"),
+                         slow_conditions=set(on_battery) | set(low_power),
                          example=frames.get(ref_name) if ref_name else None)
     for simple_path, full_path in ((run_dir / "report_simple.html", path), *also):
         simple_path, full_path = Path(simple_path), Path(full_path)
