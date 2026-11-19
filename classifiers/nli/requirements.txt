@@ -1,0 +1,8 @@
+torch
+# ModernBERT (nli_modernbert) needs transformers >= 4.48.
+transformers>=4.48
+sentencepiece
+protobuf
+python-dotenv
+pandas
+httpx

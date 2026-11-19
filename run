@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# The single entry point. ./run help for everything; the common ones:
+#   ./run list              every classifier: ready or why not, latest result
+#   ./run <name>            run one classifier            ./run setup <name>   set it up
+#   ./run all               every classifier + report     ./run report         rebuild the report
+#   ./run status            runs in progress: items done, %, time left (detached runs too)
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+PY="$ROOT/runner/.venv/bin/python"
+[ -x "$PY" ] || { echo "First set up the runner: runner/setup.sh" >&2; exit 1; }
+exec "$PY" "$ROOT/runner/run_one.py" "$@"

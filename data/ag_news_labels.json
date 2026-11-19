@@ -1,0 +1,9 @@
+{
+  "dataset": "ag_news",
+  "labels": [
+    {"class": 1, "id": "world", "name": "World", "description": "International news, politics, government, conflicts, diplomacy, elections"},
+    {"class": 2, "id": "sports", "name": "Sports", "description": "Sports events, athletes, teams, games, tournaments, leagues"},
+    {"class": 3, "id": "business", "name": "Business", "description": "Companies, markets, economy, finance, earnings, trade, oil prices, mergers"},
+    {"class": 4, "id": "sci_tech", "name": "Science/Technology", "description": "Science, technology, computing, internet, software, space, health research"}
+  ]
+}

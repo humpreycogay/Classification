@@ -1,0 +1,38 @@
+{
+  "name": "ag_news",
+  "version": "1.0 (Zhang, Zhao & LeCun 2015 CSV release)",
+  "task_type": "single_label",
+  "description": "News topic classification: 4 balanced topics.",
+  "source": "Zhang, Zhao & LeCun (2015), Character-level Convolutional Networks for Text Classification; CSV mirror in mhjabreel/CharCnn_Keras",
+  "license": "Research use (original AG's corpus terms; non-commercial)",
+  "files": {
+    "test": {"path": "ag_news_test.csv", "url": "https://raw.githubusercontent.com/mhjabreel/CharCnn_Keras/master/data/ag_news_csv/test.csv",
+             "sha256": "521465c2428ed7f02f8d6db6ffdd4b5447c1c701962353eb2c40d548c3c85699"},
+    "train": {"path": "ag_news_train.csv", "url": "https://raw.githubusercontent.com/mhjabreel/CharCnn_Keras/master/data/ag_news_csv/train.csv",
+              "sha256": "76a0a2d2f92b286371fe4d4044640910a04a803fdd2538e0f3f29a5c6f6b672e"}
+  },
+  "format": {
+    "type": "csv",
+    "header": false,
+    "columns": ["class", "title", "description"],
+    "label_column": "class",
+    "text_template": "{title}. {description}",
+    "replace": [["\\", ""], [" #39;", "'"]]
+  },
+  "labels": [
+    {"raw": 1, "id": "world", "name": "World", "description": "International news, politics, government, conflicts, diplomacy, elections"},
+    {"raw": 2, "id": "sports", "name": "Sports", "description": "Sports events, athletes, teams, games, tournaments, leagues"},
+    {"raw": 3, "id": "business", "name": "Business", "description": "Companies, markets, economy, finance, earnings, trade, oil prices, mergers"},
+    {"raw": 4, "id": "sci_tech", "name": "Science/Technology", "description": "Science, technology, computing, internet, software, space, health research"}
+  ],
+  "instruction": "What is the topic of this news article?",
+  "hypothesis_template": "The topic of this news article is {}.",
+  "embedding_label_template": "{name} news: {description}",
+  "item_noun": "article",
+  "calibration": {"from": "train", "per_label": 100, "seed": 1},
+  "supervised_sample_per_label": 1000,
+  "sampling": "balanced",
+  "tiers": {"smoke": 200, "common": 1000},
+  "primary_metric": "accuracy",
+  "remote_allowed": true
+}

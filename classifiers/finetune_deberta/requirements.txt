@@ -1,0 +1,10 @@
+torch
+transformers>=4.48
+tokenizers
+huggingface_hub
+# DeBERTa-v3's tokenizer is a SentencePiece model (spm.model).
+sentencepiece
+protobuf
+numpy
+pandas
+httpx

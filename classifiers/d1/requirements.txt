@@ -1,0 +1,8 @@
+# d1's pinned custom code requires transformers >= 5.14. These versions match the other current PyTorch apps.
+torch==2.7.1
+torchvision==0.22.1
+transformers==5.17.0
+pillow
+python-dotenv
+pandas
+httpx

@@ -1,0 +1,836 @@
+{
+ "tfidf_cnb": {
+  "label": "business",
+  "confidence": 0.8539,
+  "probabilities": {
+   "business": 0.8539,
+   "world": 0.0646,
+   "sports": 0.047,
+   "sci_tech": 0.0345
+  },
+  "load_s": 3.6,
+  "predict_s": 0.0,
+  "date": "2026-11-18"
+ },
+ "laya": {
+  "label": "business",
+  "confidence": 0.9097,
+  "probabilities": {
+   "business": 0.9097,
+   "world": 0.0557,
+   "sports": 0.0187,
+   "sci_tech": 0.0158
+  },
+  "load_s": 0.0,
+  "predict_s": 2.82,
+  "date": "2026-11-18"
+ },
+ "laya_typed": {
+  "label": "business",
+  "confidence": 0.7881,
+  "probabilities": {
+   "business": 0.7881,
+   "world": 0.1199,
+   "sports": 0.0473,
+   "sci_tech": 0.0447
+  },
+  "load_s": 0.0,
+  "predict_s": 1.73,
+  "date": "2026-11-18"
+ },
+ "laya_multilingual": {
+  "label": "business",
+  "confidence": 0.9969,
+  "probabilities": {
+   "business": 0.9969,
+   "world": 0.0023,
+   "sports": 0.0004,
+   "sci_tech": 0.0004
+  },
+  "load_s": 0.0,
+  "predict_s": 2.48,
+  "date": "2026-11-18"
+ },
+ "nli": {
+  "label": "business",
+  "confidence": 0.9975,
+  "probabilities": {
+   "business": 0.9975,
+   "sci_tech": 0.001,
+   "world": 0.0008,
+   "sports": 0.0007
+  },
+  "load_s": 48.4,
+  "predict_s": 1.29,
+  "date": "2026-11-18"
+ },
+ "nli_modernbert": {
+  "label": "business",
+  "confidence": 0.9889,
+  "probabilities": {
+   "business": 0.9889,
+   "world": 0.0069,
+   "sci_tech": 0.0026,
+   "sports": 0.0016
+  },
+  "load_s": 46.4,
+  "predict_s": 0.41,
+  "date": "2026-11-18"
+ },
+ "modernbert_jev": {
+  "label": "world",
+  "confidence": 0.682,
+  "probabilities": {
+   "world": 0.682,
+   "sci_tech": 0.164,
+   "business": 0.1244,
+   "sports": 0.0296
+  },
+  "load_s": 4.3,
+  "predict_s": 0.18,
+  "date": "2026-11-18"
+ },
+ "gliclass": {
+  "label": "business",
+  "confidence": 0.9765,
+  "probabilities": {
+   "business": 0.9765,
+   "sci_tech": 0.0224,
+   "sports": 0.0006,
+   "world": 0.0005
+  },
+  "load_s": 52.1,
+  "predict_s": 0.11,
+  "date": "2026-11-18"
+ },
+ "verdict": {
+  "label": "world",
+  "confidence": 0.3519,
+  "probabilities": {
+   "world": 0.3519,
+   "business": 0.3476,
+   "sci_tech": 0.1663,
+   "sports": 0.1341
+  },
+  "load_s": 37.5,
+  "predict_s": 0.49,
+  "date": "2026-11-18"
+ },
+ "embedsim": {
+  "label": "business",
+  "confidence": 0.8346,
+  "probabilities": {
+   "business": 0.8346,
+   "sports": 0.0826,
+   "world": 0.0649,
+   "sci_tech": 0.018
+  },
+  "load_s": 0.0,
+  "predict_s": 0.89,
+  "date": "2026-11-18"
+ },
+ "SemIf": {
+  "label": "business",
+  "confidence": 0.9912,
+  "probabilities": {
+   "business": 0.9912,
+   "world": 0.0086,
+   "sports": 0.0002,
+   "sci_tech": 0.0
+  },
+  "load_s": 455.8,
+  "predict_s": 2.96,
+  "date": "2026-11-18"
+ },
+ "decider": {
+  "label": "business",
+  "confidence": 0.9369,
+  "probabilities": {
+   "business": 0.9369,
+   "world": 0.0406,
+   "sci_tech": 0.014,
+   "sports": 0.0085
+  },
+  "load_s": 477.3,
+  "predict_s": 1.86,
+  "date": "2026-11-18"
+ },
+ "strands_decider": {
+  "label": "business",
+  "confidence": 0.9586,
+  "probabilities": {
+   "business": 0.9586,
+   "world": 0.0276,
+   "sci_tech": 0.0087,
+   "sports": 0.0052
+  },
+  "load_s": 7.5,
+  "predict_s": 2.06,
+  "date": "2026-11-18"
+ },
+ "d1": {
+  "label": "business",
+  "confidence": 0.9848,
+  "probabilities": {
+   "business": 0.9848,
+   "world": 0.0066,
+   "sports": 0.0043,
+   "sci_tech": 0.0043
+  },
+  "load_s": 5.0,
+  "predict_s": 2.45,
+  "date": "2026-11-18"
+ },
+ "d1_omni": {
+  "label": "business",
+  "confidence": 0.9538,
+  "probabilities": {
+   "business": 0.9538,
+   "world": 0.0444,
+   "sci_tech": 0.0011,
+   "sports": 0.0007
+  },
+  "load_s": 2.8,
+  "predict_s": 2.49,
+  "date": "2026-11-18"
+ },
+ "naluri_279m": {
+  "label": "business",
+  "confidence": 0.5466,
+  "probabilities": {
+   "business": 0.5466,
+   "sci_tech": 0.2639,
+   "world": 0.1351,
+   "sports": 0.0543
+  },
+  "load_s": 2.3,
+  "predict_s": 0.12,
+  "date": "2026-11-18"
+ },
+ "naluri_308m": {
+  "label": "business",
+  "confidence": 0.737,
+  "probabilities": {
+   "business": 0.737,
+   "world": 0.1789,
+   "sci_tech": 0.0553,
+   "sports": 0.0289
+  },
+  "load_s": 2.1,
+  "predict_s": 0.21,
+  "date": "2026-11-18"
+ },
+ "d3_edge": {
+  "label": "business",
+  "confidence": 0.9971,
+  "probabilities": {
+   "business": 0.9971,
+   "world": 0.0021,
+   "sci_tech": 0.0007,
+   "sports": 0.0001
+  },
+  "load_s": 2.1,
+  "predict_s": 1.19,
+  "date": "2026-11-18"
+ },
+ "d3_lite": {
+  "label": "business",
+  "confidence": 0.9935,
+  "probabilities": {
+   "business": 0.9935,
+   "world": 0.0061,
+   "sci_tech": 0.0003,
+   "sports": 0.0001
+  },
+  "load_s": 1.5,
+  "predict_s": 2.82,
+  "date": "2026-11-18"
+ },
+ "d3_nano": {
+  "label": "business",
+  "confidence": 0.9944,
+  "probabilities": {
+   "business": 0.9944,
+   "world": 0.0053,
+   "sci_tech": 0.0002,
+   "sports": 0.0001
+  },
+  "load_s": 1.5,
+  "predict_s": 5.13,
+  "date": "2026-11-18"
+ },
+ "kev": {
+  "label": "business",
+  "confidence": 0.9609,
+  "probabilities": {
+   "business": 0.9609,
+   "sci_tech": 0.0192,
+   "world": 0.015,
+   "sports": 0.0049
+  },
+  "load_s": 3.4,
+  "predict_s": 0.06,
+  "date": "2026-11-18"
+ },
+ "plumb": {
+  "label": "business",
+  "confidence": 0.9637,
+  "probabilities": {
+   "business": 0.9637,
+   "world": 0.0142,
+   "sports": 0.0132,
+   "sci_tech": 0.0088
+  },
+  "load_s": 455.5,
+  "predict_s": 0.16,
+  "date": "2026-11-18"
+ },
+ "tfidf_logreg": {
+  "label": "business",
+  "confidence": 0.932,
+  "probabilities": {
+   "business": 0.932,
+   "world": 0.0642,
+   "sports": 0.0031,
+   "sci_tech": 0.0007
+  },
+  "load_s": 89.9,
+  "predict_s": 0.0,
+  "date": "2026-11-18"
+ },
+ "tfidf_logreg_4k": {
+  "label": "business",
+  "confidence": 0.7266,
+  "probabilities": {
+   "business": 0.7266,
+   "world": 0.1377,
+   "sports": 0.102,
+   "sci_tech": 0.0336
+  },
+  "load_s": 1.5,
+  "predict_s": 0.0,
+  "date": "2026-11-18"
+ },
+ "tfidf_svm": {
+  "label": "business",
+  "confidence": 0.9414,
+  "probabilities": {
+   "business": 0.9414,
+   "world": 0.0491,
+   "sports": 0.0056,
+   "sci_tech": 0.004
+  },
+  "load_s": 49.3,
+  "predict_s": 0.0,
+  "date": "2026-11-18"
+ },
+ "tfidf_svm_raw": {
+  "label": "business",
+  "confidence": 0.6617,
+  "probabilities": {
+   "business": 0.6617,
+   "world": 0.1532,
+   "sports": 0.1154,
+   "sci_tech": 0.0697
+  },
+  "load_s": 23.5,
+  "predict_s": 0.0,
+  "date": "2026-11-18"
+ },
+ "embedsup_centroid": {
+  "label": "business",
+  "confidence": 0.9406,
+  "probabilities": {
+   "business": 0.9406,
+   "sci_tech": 0.025,
+   "sports": 0.0234,
+   "world": 0.0109
+  },
+  "load_s": 183.6,
+  "predict_s": 0.08,
+  "date": "2026-11-18"
+ },
+ "embedsup_logreg": {
+  "label": "business",
+  "confidence": 0.975,
+  "probabilities": {
+   "business": 0.975,
+   "world": 0.0209,
+   "sports": 0.0029,
+   "sci_tech": 0.0012
+  },
+  "load_s": 0.5,
+  "predict_s": 0.04,
+  "date": "2026-11-18"
+ },
+ "OpenJev": {
+  "label": "business",
+  "confidence": 0.9962,
+  "probabilities": {
+   "business": 0.9994,
+   "sports": 0.0004,
+   "sci_tech": 0.0001,
+   "world": 0.0001
+  },
+  "load_s": 0.0,
+  "predict_s": 4.42,
+  "date": "2026-11-18"
+ },
+ "llmqwen": {
+  "label": "business",
+  "confidence": 1.0,
+  "probabilities": {
+   "business": 1.0,
+   "sports": 0.0,
+   "world": 0.0,
+   "sci_tech": 0.0
+  },
+  "load_s": 0.0,
+  "predict_s": 9.45,
+  "date": "2026-11-18"
+ },
+ "clm": {
+  "label": "business",
+  "confidence": 0.6046,
+  "probabilities": {
+   "business": 0.6046,
+   "sports": 0.372,
+   "world": 0.0234,
+   "sci_tech": 0.0
+  },
+  "load_s": 9.8,
+  "predict_s": 0.44,
+  "date": "2026-11-18"
+ },
+ "nimble": {
+  "label": "business",
+  "confidence": 0.9974,
+  "probabilities": {
+   "business": 0.9974,
+   "sci_tech": 0.0013,
+   "world": 0.0011,
+   "sports": 0.0002
+  },
+  "load_s": 9.2,
+  "predict_s": 0.31,
+  "date": "2026-11-18"
+ },
+ "winnow": {
+  "label": "business",
+  "confidence": 0.9995,
+  "probabilities": {
+   "business": 0.9995,
+   "world": 0.0004,
+   "sci_tech": 0.0001,
+   "sports": 0.0
+  },
+  "load_s": 0.0,
+  "predict_s": 1.97,
+  "date": "2026-11-18"
+ },
+ "jev": {
+  "label": "business",
+  "confidence": 1.0,
+  "probabilities": {
+   "business": 1.0,
+   "world": 0.0,
+   "sports": 0.0,
+   "sci_tech": 0.0
+  },
+  "load_s": 0.0,
+  "predict_s": 0.5,
+  "date": "2026-11-18"
+ },
+ "verdict_shortlist": {
+  "label": "card_not_working",
+  "confidence": 0.3351,
+  "probabilities": {
+   "card_not_working": 0.3351,
+   "order_physical_card": 0.1056,
+   "card_arrival": 0.0969,
+   "get_physical_card": 0.0663,
+   "getting_virtual_card": 0.0554,
+   "getting_spare_card": 0.0534,
+   "compromised_card": 0.0492,
+   "lost_or_stolen_card": 0.034,
+   "virtual_card_not_working": 0.0293,
+   "card_about_to_expire": 0.0241,
+   "pending_transfer": 0.0229,
+   "transfer_not_received_by_recipient": 0.0221,
+   "declined_card_payment": 0.0195,
+   "refund_not_showing_up": 0.0182,
+   "card_payment_not_recognised": 0.0145,
+   "pending_card_payment": 0.0107,
+   "card_swallowed": 0.0089,
+   "card_payment_fee_charged": 0.008,
+   "card_acceptance": 0.0076,
+   "pending_top_up": 0.0058,
+   "reverted_card_payment?": 0.0055,
+   "card_delivery_estimate": 0.0029,
+   "pending_cash_withdrawal": 0.0024,
+   "card_payment_wrong_exchange_rate": 0.0017
+  },
+  "shortlist": [
+   "pending_card_payment",
+   "card_not_working",
+   "card_arrival",
+   "card_delivery_estimate",
+   "declined_card_payment",
+   "card_payment_not_recognised",
+   "virtual_card_not_working",
+   "card_about_to_expire",
+   "get_physical_card",
+   "order_physical_card",
+   "getting_spare_card",
+   "transfer_not_received_by_recipient",
+   "lost_or_stolen_card",
+   "refund_not_showing_up",
+   "compromised_card",
+   "card_payment_fee_charged",
+   "pending_transfer",
+   "getting_virtual_card",
+   "pending_top_up",
+   "card_swallowed",
+   "card_acceptance",
+   "pending_cash_withdrawal",
+   "card_payment_wrong_exchange_rate",
+   "reverted_card_payment?"
+  ],
+  "load_s": 9.1,
+  "predict_s": 0.0,
+  "date": "2026-11-18"
+ },
+ "llmqwen_shortlist": {
+  "label": "card_arrival",
+  "confidence": 0.9869,
+  "probabilities": {
+   "card_arrival": 0.9869,
+   "get_physical_card": 0.0056,
+   "getting_spare_card": 0.0047,
+   "card_delivery_estimate": 0.0019,
+   "order_physical_card": 0.0004,
+   "transfer_not_received_by_recipient": 0.0002,
+   "lost_or_stolen_card": 0.0001,
+   "pending_card_payment": 0.0001,
+   "declined_card_payment": 0.0,
+   "virtual_card_not_working": 0.0,
+   "card_payment_not_recognised": 0.0,
+   "card_not_working": 0.0,
+   "card_about_to_expire": 0.0,
+   "compromised_card": 0.0,
+   "card_payment_fee_charged": 0.0,
+   "refund_not_showing_up": 0.0
+  },
+  "shortlist": [
+   "pending_card_payment",
+   "card_not_working",
+   "card_arrival",
+   "card_delivery_estimate",
+   "declined_card_payment",
+   "card_payment_not_recognised",
+   "virtual_card_not_working",
+   "card_about_to_expire",
+   "get_physical_card",
+   "order_physical_card",
+   "getting_spare_card",
+   "transfer_not_received_by_recipient",
+   "lost_or_stolen_card",
+   "refund_not_showing_up",
+   "compromised_card",
+   "card_payment_fee_charged"
+  ],
+  "load_s": 15.2,
+  "predict_s": 0.0,
+  "date": "2026-11-18"
+ },
+ "SemIf_shortlist": {
+  "label": "card_arrival",
+  "confidence": 0.8097,
+  "probabilities": {
+   "card_arrival": 0.8097,
+   "order_physical_card": 0.0967,
+   "get_physical_card": 0.0457,
+   "pending_card_payment": 0.0403,
+   "card_not_working": 0.0029,
+   "card_delivery_estimate": 0.0018,
+   "getting_spare_card": 0.0012,
+   "declined_card_payment": 0.0004,
+   "transfer_not_received_by_recipient": 0.0004,
+   "card_about_to_expire": 0.0003,
+   "compromised_card": 0.0002,
+   "card_payment_not_recognised": 0.0001,
+   "virtual_card_not_working": 0.0001,
+   "lost_or_stolen_card": 0.0001,
+   "refund_not_showing_up": 0.0001,
+   "card_payment_fee_charged": 0.0
+  },
+  "shortlist": [
+   "pending_card_payment",
+   "card_not_working",
+   "card_arrival",
+   "card_delivery_estimate",
+   "declined_card_payment",
+   "card_payment_not_recognised",
+   "virtual_card_not_working",
+   "card_about_to_expire",
+   "get_physical_card",
+   "order_physical_card",
+   "getting_spare_card",
+   "transfer_not_received_by_recipient",
+   "lost_or_stolen_card",
+   "refund_not_showing_up",
+   "compromised_card",
+   "card_payment_fee_charged"
+  ],
+  "load_s": 67.2,
+  "predict_s": 0.0,
+  "date": "2026-11-18"
+ },
+ "plumb_shortlist": {
+  "label": "order_physical_card",
+  "confidence": 0.3302,
+  "probabilities": {
+   "order_physical_card": 0.3302,
+   "get_physical_card": 0.3047,
+   "card_arrival": 0.2499,
+   "card_delivery_estimate": 0.0314,
+   "pending_card_payment": 0.013,
+   "card_not_working": 0.0111,
+   "getting_spare_card": 0.0109,
+   "lost_or_stolen_card": 0.0079,
+   "transfer_not_received_by_recipient": 0.0074,
+   "virtual_card_not_working": 0.0068,
+   "card_about_to_expire": 0.0062,
+   "declined_card_payment": 0.005,
+   "card_payment_fee_charged": 0.0044,
+   "refund_not_showing_up": 0.0042,
+   "compromised_card": 0.0037,
+   "card_payment_not_recognised": 0.0032
+  },
+  "shortlist": [
+   "pending_card_payment",
+   "card_not_working",
+   "card_arrival",
+   "card_delivery_estimate",
+   "declined_card_payment",
+   "card_payment_not_recognised",
+   "virtual_card_not_working",
+   "card_about_to_expire",
+   "get_physical_card",
+   "order_physical_card",
+   "getting_spare_card",
+   "transfer_not_received_by_recipient",
+   "lost_or_stolen_card",
+   "refund_not_showing_up",
+   "compromised_card",
+   "card_payment_fee_charged"
+  ],
+  "load_s": 194.6,
+  "predict_s": 0.0,
+  "date": "2026-11-18"
+ },
+ "winnow_shortlist": {
+  "label": "card_arrival",
+  "confidence": 0.9596,
+  "probabilities": {
+   "card_arrival": 0.9596,
+   "card_delivery_estimate": 0.0242,
+   "get_physical_card": 0.0127,
+   "order_physical_card": 0.0018,
+   "pending_card_payment": 0.0003,
+   "card_not_working": 0.0002,
+   "declined_card_payment": 0.0002,
+   "refund_not_showing_up": 0.0001,
+   "lost_or_stolen_card": 0.0001,
+   "card_about_to_expire": 0.0001,
+   "card_swallowed": 0.0001,
+   "compromised_card": 0.0001,
+   "card_payment_not_recognised": 0.0001,
+   "transfer_not_received_by_recipient": 0.0001,
+   "getting_virtual_card": 0.0,
+   "top_up_failed": 0.0,
+   "virtual_card_not_working": 0.0,
+   "disposable_card_limits": 0.0,
+   "card_payment_fee_charged": 0.0,
+   "getting_spare_card": 0.0,
+   "pending_transfer": 0.0,
+   "pending_cash_withdrawal": 0.0,
+   "pending_top_up": 0.0,
+   "card_acceptance": 0.0,
+   "reverted_card_payment?": 0.0,
+   "top_up_by_bank_transfer_charge": 0.0,
+   "contactless_not_working": 0.0,
+   "top_up_by_cash_or_cheque": 0.0,
+   "topping_up_by_card": 0.0,
+   "declined_transfer": 0.0,
+   "verify_my_identity": 0.0,
+   "balance_not_updated_after_cheque_or_cash_deposit": 0.0,
+   "cash_withdrawal_charge": 0.0,
+   "verify_top_up": 0.0,
+   "activate_my_card": 0.0,
+   "terminate_account": 0.0,
+   "card_payment_wrong_exchange_rate": 0.0,
+   "get_disposable_virtual_card": 0.0,
+   "card_linking": 0.0,
+   "direct_debit_payment_not_recognised": 0.0,
+   "balance_not_updated_after_bank_transfer": 0.0,
+   "extra_charge_on_statement": 0.0,
+   "cash_withdrawal_not_recognised": 0.0,
+   "transaction_charged_twice": 0.0,
+   "wrong_amount_of_cash_received": 0.0,
+   "receiving_money": 0.0,
+   "top_up_by_card_charge": 0.0,
+   "transfer_fee_charged": 0.0,
+   "unable_to_verify_identity": 0.0,
+   "wrong_exchange_rate_for_cash_withdrawal": 0.0,
+   "supported_cards_and_currencies": 0.0,
+   "failed_transfer": 0.0,
+   "top_up_reverted": 0.0,
+   "cancel_transfer": 0.0,
+   "transfer_timing": 0.0,
+   "passcode_forgotten": 0.0,
+   "lost_or_stolen_phone": 0.0,
+   "declined_cash_withdrawal": 0.0,
+   "transfer_into_account": 0.0,
+   "exchange_charge": 0.0,
+   "exchange_via_app": 0.0,
+   "pin_blocked": 0.0,
+   "change_pin": 0.0,
+   "visa_or_mastercard": 0.0
+  },
+  "shortlist": [
+   "pending_card_payment",
+   "card_not_working",
+   "card_arrival",
+   "card_delivery_estimate",
+   "declined_card_payment",
+   "card_payment_not_recognised",
+   "virtual_card_not_working",
+   "card_about_to_expire",
+   "get_physical_card",
+   "order_physical_card",
+   "getting_spare_card",
+   "transfer_not_received_by_recipient",
+   "lost_or_stolen_card",
+   "refund_not_showing_up",
+   "compromised_card",
+   "card_payment_fee_charged",
+   "pending_transfer",
+   "getting_virtual_card",
+   "pending_top_up",
+   "card_swallowed",
+   "card_acceptance",
+   "pending_cash_withdrawal",
+   "card_payment_wrong_exchange_rate",
+   "reverted_card_payment?",
+   "get_disposable_virtual_card",
+   "balance_not_updated_after_bank_transfer",
+   "activate_my_card",
+   "balance_not_updated_after_cheque_or_cash_deposit",
+   "top_up_failed",
+   "contactless_not_working",
+   "cash_withdrawal_not_recognised",
+   "failed_transfer",
+   "card_linking",
+   "declined_transfer",
+   "topping_up_by_card",
+   "disposable_card_limits",
+   "top_up_by_card_charge",
+   "wrong_amount_of_cash_received",
+   "direct_debit_payment_not_recognised",
+   "transaction_charged_twice",
+   "receiving_money",
+   "supported_cards_and_currencies",
+   "visa_or_mastercard",
+   "unable_to_verify_identity",
+   "transfer_fee_charged",
+   "lost_or_stolen_phone",
+   "declined_cash_withdrawal",
+   "transfer_timing",
+   "top_up_reverted",
+   "pin_blocked",
+   "exchange_charge",
+   "passcode_forgotten",
+   "wrong_exchange_rate_for_cash_withdrawal",
+   "cancel_transfer",
+   "extra_charge_on_statement",
+   "cash_withdrawal_charge",
+   "verify_my_identity",
+   "change_pin",
+   "transfer_into_account",
+   "verify_top_up",
+   "terminate_account",
+   "top_up_by_bank_transfer_charge",
+   "exchange_via_app",
+   "top_up_by_cash_or_cheque"
+  ],
+  "load_s": 4.5,
+  "predict_s": 0.0,
+  "date": "2026-11-18"
+ },
+ "scratch_fasttext": {
+  "label": "business",
+  "confidence": 0.9911,
+  "probabilities": {
+   "business": 0.9911,
+   "world": 0.0089,
+   "sports": 0.0,
+   "sci_tech": 0.0
+  },
+  "load_s": 0.4,
+  "predict_s": 0.0,
+  "date": "2026-11-18"
+ },
+ "scratch_cnn": {
+  "label": "business",
+  "confidence": 0.6311,
+  "probabilities": {
+   "business": 0.6311,
+   "world": 0.3187,
+   "sci_tech": 0.0347,
+   "sports": 0.0155
+  },
+  "load_s": 0.4,
+  "predict_s": 0.06,
+  "date": "2026-11-18"
+ },
+ "scratch_bilstm": {
+  "label": "business",
+  "confidence": 0.6894,
+  "probabilities": {
+   "business": 0.6894,
+   "world": 0.2941,
+   "sci_tech": 0.0142,
+   "sports": 0.0023
+  },
+  "load_s": 0.3,
+  "predict_s": 0.0,
+  "date": "2026-11-18"
+ },
+ "finetune_modernbert": {
+  "label": "business",
+  "confidence": 0.8977,
+  "probabilities": {
+   "business": 0.8977,
+   "world": 0.086,
+   "sci_tech": 0.0136,
+   "sports": 0.0026
+  },
+  "load_s": 1.2,
+  "predict_s": 0.54,
+  "date": "2026-11-18"
+ },
+ "finetune_deberta": {
+  "label": "business",
+  "confidence": 0.8694,
+  "probabilities": {
+   "business": 0.8694,
+   "world": 0.1156,
+   "sci_tech": 0.0133,
+   "sports": 0.0017
+  },
+  "load_s": 1.1,
+  "predict_s": 0.73,
+  "date": "2026-11-18"
+ }
+}

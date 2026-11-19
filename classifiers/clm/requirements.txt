@@ -1,0 +1,10 @@
+# contrastive-lm (CLM's own heads, schema and scoring), pinned to a commit and installed WITHOUT its dependencies
+# by setup.sh: they include vLLM, which is Linux + CUDA only; here Qwen3-8B runs in transformers instead.
+torch
+transformers==5.17.0
+numpy
+requests
+huggingface_hub
+python-dotenv
+pandas
+httpx

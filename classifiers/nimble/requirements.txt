@@ -1,0 +1,14 @@
+# Nimble (https://github.com/bespokelabsai/nimble) is not a pip package: setup.sh checks it out into src/
+# at a pinned commit and classifier.py imports it from there. Versions follow its requirements/mlx.txt
+# (scoring) and requirements/training.txt (the one-time CPU merge of the LoRA adapter).
+mlx==0.32.2
+mlx-lm==0.31.3
+transformers==5.17.0
+torch==2.8.0
+peft==0.21.0
+accelerate==1.15.0
+sentencepiece==0.2.2
+huggingface_hub
+python-dotenv
+pandas
+httpx

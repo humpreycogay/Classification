@@ -1,0 +1,10 @@
+# jevk5 (Plumb's runtime; not on PyPI) at its v0.2.0 tag, without the CUDA extras: it supplies the prompt, answer
+# tokens and temperature, and its PyTorch path is the CPU reference of setup.sh's parity check. The forward pass
+# runs on MLX (versions as Nimble's).
+jevk5 @ git+https://github.com/allebee/jevk5@85238d7be5527370c43206fe54cd752eb3134c1b
+mlx==0.32.2
+mlx-lm==0.31.3
+transformers==5.17.0
+python-dotenv
+pandas
+httpx

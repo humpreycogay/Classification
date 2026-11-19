@@ -1,0 +1,512 @@
+{
+  "name": "banking77",
+  "version": "1.0 (PolyAI task-specific-datasets, banking_data)",
+  "task_type": "single_label",
+  "description": "Online-banking customer queries: 77 fine-grained intents, short texts.",
+  "source": "Casanueva et al. (2020), Efficient Intent Detection with Dual Sentence Encoders; github.com/PolyAI-LDN/task-specific-datasets",
+  "license": "CC BY 4.0",
+  "files": {
+    "test": {
+      "path": "banking77_test.csv",
+      "url": "https://raw.githubusercontent.com/PolyAI-LDN/task-specific-datasets/master/banking_data/test.csv",
+      "sha256": "d12d6e3bc4c3103966ae786dc435913c0c563dfa328f5a3646d0e62cfeeb474d"
+    },
+    "train": {
+      "path": "banking77_train.csv",
+      "url": "https://raw.githubusercontent.com/PolyAI-LDN/task-specific-datasets/master/banking_data/train.csv",
+      "sha256": "b06e26ac675513959a63135f11b94ea7786ed02da65db93a5650d8838cbc664b"
+    }
+  },
+  "format": {
+    "type": "csv",
+    "header": true,
+    "columns": [
+      "text",
+      "category"
+    ],
+    "label_column": "category",
+    "text_template": "{text}",
+    "replace": []
+  },
+  "labels": [
+    {
+      "raw": "activate_my_card",
+      "id": "activate_my_card",
+      "name": "Activate my card",
+      "description": "Activate my card"
+    },
+    {
+      "raw": "age_limit",
+      "id": "age_limit",
+      "name": "Age limit",
+      "description": "Age limit"
+    },
+    {
+      "raw": "apple_pay_or_google_pay",
+      "id": "apple_pay_or_google_pay",
+      "name": "Apple pay or google pay",
+      "description": "Apple pay or google pay"
+    },
+    {
+      "raw": "atm_support",
+      "id": "atm_support",
+      "name": "Atm support",
+      "description": "Atm support"
+    },
+    {
+      "raw": "automatic_top_up",
+      "id": "automatic_top_up",
+      "name": "Automatic top up",
+      "description": "Automatic top up"
+    },
+    {
+      "raw": "balance_not_updated_after_bank_transfer",
+      "id": "balance_not_updated_after_bank_transfer",
+      "name": "Balance not updated after bank transfer",
+      "description": "Balance not updated after bank transfer"
+    },
+    {
+      "raw": "balance_not_updated_after_cheque_or_cash_deposit",
+      "id": "balance_not_updated_after_cheque_or_cash_deposit",
+      "name": "Balance not updated after cheque or cash deposit",
+      "description": "Balance not updated after cheque or cash deposit"
+    },
+    {
+      "raw": "beneficiary_not_allowed",
+      "id": "beneficiary_not_allowed",
+      "name": "Beneficiary not allowed",
+      "description": "Beneficiary not allowed"
+    },
+    {
+      "raw": "cancel_transfer",
+      "id": "cancel_transfer",
+      "name": "Cancel transfer",
+      "description": "Cancel transfer"
+    },
+    {
+      "raw": "card_about_to_expire",
+      "id": "card_about_to_expire",
+      "name": "Card about to expire",
+      "description": "Card about to expire"
+    },
+    {
+      "raw": "card_acceptance",
+      "id": "card_acceptance",
+      "name": "Card acceptance",
+      "description": "Card acceptance"
+    },
+    {
+      "raw": "card_arrival",
+      "id": "card_arrival",
+      "name": "Card arrival",
+      "description": "Card arrival"
+    },
+    {
+      "raw": "card_delivery_estimate",
+      "id": "card_delivery_estimate",
+      "name": "Card delivery estimate",
+      "description": "Card delivery estimate"
+    },
+    {
+      "raw": "card_linking",
+      "id": "card_linking",
+      "name": "Card linking",
+      "description": "Card linking"
+    },
+    {
+      "raw": "card_not_working",
+      "id": "card_not_working",
+      "name": "Card not working",
+      "description": "Card not working"
+    },
+    {
+      "raw": "card_payment_fee_charged",
+      "id": "card_payment_fee_charged",
+      "name": "Card payment fee charged",
+      "description": "Card payment fee charged"
+    },
+    {
+      "raw": "card_payment_not_recognised",
+      "id": "card_payment_not_recognised",
+      "name": "Card payment not recognised",
+      "description": "Card payment not recognised"
+    },
+    {
+      "raw": "card_payment_wrong_exchange_rate",
+      "id": "card_payment_wrong_exchange_rate",
+      "name": "Card payment wrong exchange rate",
+      "description": "Card payment wrong exchange rate"
+    },
+    {
+      "raw": "card_swallowed",
+      "id": "card_swallowed",
+      "name": "Card swallowed",
+      "description": "Card swallowed"
+    },
+    {
+      "raw": "cash_withdrawal_charge",
+      "id": "cash_withdrawal_charge",
+      "name": "Cash withdrawal charge",
+      "description": "Cash withdrawal charge"
+    },
+    {
+      "raw": "cash_withdrawal_not_recognised",
+      "id": "cash_withdrawal_not_recognised",
+      "name": "Cash withdrawal not recognised",
+      "description": "Cash withdrawal not recognised"
+    },
+    {
+      "raw": "change_pin",
+      "id": "change_pin",
+      "name": "Change pin",
+      "description": "Change pin"
+    },
+    {
+      "raw": "compromised_card",
+      "id": "compromised_card",
+      "name": "Compromised card",
+      "description": "Compromised card"
+    },
+    {
+      "raw": "contactless_not_working",
+      "id": "contactless_not_working",
+      "name": "Contactless not working",
+      "description": "Contactless not working"
+    },
+    {
+      "raw": "country_support",
+      "id": "country_support",
+      "name": "Country support",
+      "description": "Country support"
+    },
+    {
+      "raw": "declined_card_payment",
+      "id": "declined_card_payment",
+      "name": "Declined card payment",
+      "description": "Declined card payment"
+    },
+    {
+      "raw": "declined_cash_withdrawal",
+      "id": "declined_cash_withdrawal",
+      "name": "Declined cash withdrawal",
+      "description": "Declined cash withdrawal"
+    },
+    {
+      "raw": "declined_transfer",
+      "id": "declined_transfer",
+      "name": "Declined transfer",
+      "description": "Declined transfer"
+    },
+    {
+      "raw": "direct_debit_payment_not_recognised",
+      "id": "direct_debit_payment_not_recognised",
+      "name": "Direct debit payment not recognised",
+      "description": "Direct debit payment not recognised"
+    },
+    {
+      "raw": "disposable_card_limits",
+      "id": "disposable_card_limits",
+      "name": "Disposable card limits",
+      "description": "Disposable card limits"
+    },
+    {
+      "raw": "edit_personal_details",
+      "id": "edit_personal_details",
+      "name": "Edit personal details",
+      "description": "Edit personal details"
+    },
+    {
+      "raw": "exchange_charge",
+      "id": "exchange_charge",
+      "name": "Exchange charge",
+      "description": "Exchange charge"
+    },
+    {
+      "raw": "exchange_rate",
+      "id": "exchange_rate",
+      "name": "Exchange rate",
+      "description": "Exchange rate"
+    },
+    {
+      "raw": "exchange_via_app",
+      "id": "exchange_via_app",
+      "name": "Exchange via app",
+      "description": "Exchange via app"
+    },
+    {
+      "raw": "extra_charge_on_statement",
+      "id": "extra_charge_on_statement",
+      "name": "Extra charge on statement",
+      "description": "Extra charge on statement"
+    },
+    {
+      "raw": "failed_transfer",
+      "id": "failed_transfer",
+      "name": "Failed transfer",
+      "description": "Failed transfer"
+    },
+    {
+      "raw": "fiat_currency_support",
+      "id": "fiat_currency_support",
+      "name": "Fiat currency support",
+      "description": "Fiat currency support"
+    },
+    {
+      "raw": "get_disposable_virtual_card",
+      "id": "get_disposable_virtual_card",
+      "name": "Get disposable virtual card",
+      "description": "Get disposable virtual card"
+    },
+    {
+      "raw": "get_physical_card",
+      "id": "get_physical_card",
+      "name": "Get physical card",
+      "description": "Get physical card"
+    },
+    {
+      "raw": "getting_spare_card",
+      "id": "getting_spare_card",
+      "name": "Getting spare card",
+      "description": "Getting spare card"
+    },
+    {
+      "raw": "getting_virtual_card",
+      "id": "getting_virtual_card",
+      "name": "Getting virtual card",
+      "description": "Getting virtual card"
+    },
+    {
+      "raw": "lost_or_stolen_card",
+      "id": "lost_or_stolen_card",
+      "name": "Lost or stolen card",
+      "description": "Lost or stolen card"
+    },
+    {
+      "raw": "lost_or_stolen_phone",
+      "id": "lost_or_stolen_phone",
+      "name": "Lost or stolen phone",
+      "description": "Lost or stolen phone"
+    },
+    {
+      "raw": "order_physical_card",
+      "id": "order_physical_card",
+      "name": "Order physical card",
+      "description": "Order physical card"
+    },
+    {
+      "raw": "passcode_forgotten",
+      "id": "passcode_forgotten",
+      "name": "Passcode forgotten",
+      "description": "Passcode forgotten"
+    },
+    {
+      "raw": "pending_card_payment",
+      "id": "pending_card_payment",
+      "name": "Pending card payment",
+      "description": "Pending card payment"
+    },
+    {
+      "raw": "pending_cash_withdrawal",
+      "id": "pending_cash_withdrawal",
+      "name": "Pending cash withdrawal",
+      "description": "Pending cash withdrawal"
+    },
+    {
+      "raw": "pending_top_up",
+      "id": "pending_top_up",
+      "name": "Pending top up",
+      "description": "Pending top up"
+    },
+    {
+      "raw": "pending_transfer",
+      "id": "pending_transfer",
+      "name": "Pending transfer",
+      "description": "Pending transfer"
+    },
+    {
+      "raw": "pin_blocked",
+      "id": "pin_blocked",
+      "name": "Pin blocked",
+      "description": "Pin blocked"
+    },
+    {
+      "raw": "receiving_money",
+      "id": "receiving_money",
+      "name": "Receiving money",
+      "description": "Receiving money"
+    },
+    {
+      "raw": "Refund_not_showing_up",
+      "id": "refund_not_showing_up",
+      "name": "Refund not showing up",
+      "description": "Refund not showing up"
+    },
+    {
+      "raw": "request_refund",
+      "id": "request_refund",
+      "name": "Request refund",
+      "description": "Request refund"
+    },
+    {
+      "raw": "reverted_card_payment?",
+      "id": "reverted_card_payment?",
+      "name": "Reverted card payment?",
+      "description": "Reverted card payment?"
+    },
+    {
+      "raw": "supported_cards_and_currencies",
+      "id": "supported_cards_and_currencies",
+      "name": "Supported cards and currencies",
+      "description": "Supported cards and currencies"
+    },
+    {
+      "raw": "terminate_account",
+      "id": "terminate_account",
+      "name": "Terminate account",
+      "description": "Terminate account"
+    },
+    {
+      "raw": "top_up_by_bank_transfer_charge",
+      "id": "top_up_by_bank_transfer_charge",
+      "name": "Top up by bank transfer charge",
+      "description": "Top up by bank transfer charge"
+    },
+    {
+      "raw": "top_up_by_card_charge",
+      "id": "top_up_by_card_charge",
+      "name": "Top up by card charge",
+      "description": "Top up by card charge"
+    },
+    {
+      "raw": "top_up_by_cash_or_cheque",
+      "id": "top_up_by_cash_or_cheque",
+      "name": "Top up by cash or cheque",
+      "description": "Top up by cash or cheque"
+    },
+    {
+      "raw": "top_up_failed",
+      "id": "top_up_failed",
+      "name": "Top up failed",
+      "description": "Top up failed"
+    },
+    {
+      "raw": "top_up_limits",
+      "id": "top_up_limits",
+      "name": "Top up limits",
+      "description": "Top up limits"
+    },
+    {
+      "raw": "top_up_reverted",
+      "id": "top_up_reverted",
+      "name": "Top up reverted",
+      "description": "Top up reverted"
+    },
+    {
+      "raw": "topping_up_by_card",
+      "id": "topping_up_by_card",
+      "name": "Topping up by card",
+      "description": "Topping up by card"
+    },
+    {
+      "raw": "transaction_charged_twice",
+      "id": "transaction_charged_twice",
+      "name": "Transaction charged twice",
+      "description": "Transaction charged twice"
+    },
+    {
+      "raw": "transfer_fee_charged",
+      "id": "transfer_fee_charged",
+      "name": "Transfer fee charged",
+      "description": "Transfer fee charged"
+    },
+    {
+      "raw": "transfer_into_account",
+      "id": "transfer_into_account",
+      "name": "Transfer into account",
+      "description": "Transfer into account"
+    },
+    {
+      "raw": "transfer_not_received_by_recipient",
+      "id": "transfer_not_received_by_recipient",
+      "name": "Transfer not received by recipient",
+      "description": "Transfer not received by recipient"
+    },
+    {
+      "raw": "transfer_timing",
+      "id": "transfer_timing",
+      "name": "Transfer timing",
+      "description": "Transfer timing"
+    },
+    {
+      "raw": "unable_to_verify_identity",
+      "id": "unable_to_verify_identity",
+      "name": "Unable to verify identity",
+      "description": "Unable to verify identity"
+    },
+    {
+      "raw": "verify_my_identity",
+      "id": "verify_my_identity",
+      "name": "Verify my identity",
+      "description": "Verify my identity"
+    },
+    {
+      "raw": "verify_source_of_funds",
+      "id": "verify_source_of_funds",
+      "name": "Verify source of funds",
+      "description": "Verify source of funds"
+    },
+    {
+      "raw": "verify_top_up",
+      "id": "verify_top_up",
+      "name": "Verify top up",
+      "description": "Verify top up"
+    },
+    {
+      "raw": "virtual_card_not_working",
+      "id": "virtual_card_not_working",
+      "name": "Virtual card not working",
+      "description": "Virtual card not working"
+    },
+    {
+      "raw": "visa_or_mastercard",
+      "id": "visa_or_mastercard",
+      "name": "Visa or mastercard",
+      "description": "Visa or mastercard"
+    },
+    {
+      "raw": "why_verify_identity",
+      "id": "why_verify_identity",
+      "name": "Why verify identity",
+      "description": "Why verify identity"
+    },
+    {
+      "raw": "wrong_amount_of_cash_received",
+      "id": "wrong_amount_of_cash_received",
+      "name": "Wrong amount of cash received",
+      "description": "Wrong amount of cash received"
+    },
+    {
+      "raw": "wrong_exchange_rate_for_cash_withdrawal",
+      "id": "wrong_exchange_rate_for_cash_withdrawal",
+      "name": "Wrong exchange rate for cash withdrawal",
+      "description": "Wrong exchange rate for cash withdrawal"
+    }
+  ],
+  "instruction": "Which customer-support intent does this online-banking message express?",
+  "hypothesis_template": "This banking customer message is about {}.",
+  "embedding_label_template": "Banking customer request: {name}",
+  "item_noun": "message",
+  "calibration": {
+    "from": "train",
+    "per_label": 5,
+    "seed": 1
+  },
+  "supervised_sample_per_label": 30,
+  "sampling": "balanced",
+  "tiers": {
+    "smoke": 200,
+    "common": 1000
+  },
+  "primary_metric": "accuracy",
+  "remote_allowed": true
+}

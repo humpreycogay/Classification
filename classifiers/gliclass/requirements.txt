@@ -1,0 +1,6 @@
+torch
+transformers
+gliclass==0.1.20
+python-dotenv
+pandas
+httpx

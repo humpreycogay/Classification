@@ -1,0 +1,5 @@
+# SemIf is not on PyPI: installed from GitHub, pinned to a reviewed commit, with the Apple Silicon MLX backend.
+semif-phase1[mlx] @ git+https://github.com/TheoLeeCJ/SemIf-OpenJev.git@23cf1f39fc9534fe81437200959b6dfc7106e45a
+python-dotenv
+pandas
+httpx

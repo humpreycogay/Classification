@@ -1,0 +1,14 @@
+# strands-decider (Strands Labs' runtime; PyPI's 0.1.0 predates the device extras) at the latest commit of its
+# repository on 2026-10-03, with the MLX extra: the torso runs on MLX, and its PyTorch path on CPU (float32) is the
+# reference of setup.sh's parity check. torch, transformers and peft: the versions of the authors' Mac measurements.
+strands-decider[mlx] @ git+https://github.com/strands-labs/strands-decider@890947e7ccd44c3de4115e26a7f46cc5c3147b44
+torch==2.7.1
+transformers==5.17.0
+peft==0.21.0
+mlx==0.32.3
+mlx-lm==0.32.0
+python-dotenv
+pandas
+httpx
+# pyarrow: setup.sh reads the public train splits (parquet) for the training-overlap check.
+pyarrow

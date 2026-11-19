@@ -1,0 +1,10 @@
+{
+  "_help": "Prices for paid apps (App.cost = 'paid' in apps.py). Leave a value null when unknown: the report then shows the cost as unknown instead of assuming one. Fill either per-1k-token prices or a per-request price, and name the source (price page URL and date).",
+  "jev": {
+    "currency": "USD",
+    "per_1k_input_tokens": null,
+    "per_1k_output_tokens": null,
+    "per_request": null,
+    "source": null
+  }
+}

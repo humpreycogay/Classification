@@ -1,0 +1,8 @@
+# decider-ai >= 1.4.0 reads temperature_by_type (v3's text path remains compatible); [metal] adds the MLX kernels
+# used on MPS. Exact pin: setup.sh's parity check covers this package/model combination.
+decider-ai[metal]==1.8.0
+python-dotenv
+pandas
+httpx
+# pyarrow: setup.sh reads the public train splits (parquet) for the training-overlap check.
+pyarrow

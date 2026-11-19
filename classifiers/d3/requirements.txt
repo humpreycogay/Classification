@@ -1,0 +1,9 @@
+torch==2.7.1
+torchvision==0.22.1
+transformers==5.17.0
+safetensors
+accelerate
+pillow
+opencv-python-headless
+pandas
+httpx

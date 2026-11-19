@@ -1,0 +1,76 @@
+# Published: the site (index.html, models/, reports/ag_news.html, reports/banking77.html) and the code to
+# reproduce it (run, runner/, shared/, classifiers/, data/tasks/, .env.example). Everything else stays local.
+
+# --- Secrets and credentials -------------------------------------------------------------------------------
+# Local settings and API keys (the template is .env.example)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+id_rsa*
+id_ed25519*
+.netrc
+.npmrc
+.pypirc
+credentials*.json
+*secret*
+*token*
+.huggingface/
+
+# --- Planning and working notes (Markdown) -----------------------------------------------------------------
+ImplemPlan.md
+Implement_*.md
+Lecture.md
+checklist.md
+erratum.md
+fixes.md
+docs/
+# Any other Markdown note, now or later
+*.md
+
+# --- Model weights and fitted models (downloaded or trained by the setup scripts and first runs) -----------
+classifiers/*/models/
+classifiers/*/server/models/
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.h5
+*.pkl
+*.joblib
+*.npy
+*.npz
+*.mlpackage/
+
+# --- Generated output: results, reports, run history and logs -----------------------------------------------
+classifiers/*/results/
+reports/*
+!reports/ag_news.html
+!reports/banking77.html
+*.log
+
+# --- Downloaded datasets (fetched and checksum-verified on first use; manifests in data/tasks/ are tracked) -
+data/*.csv
+
+# --- Third-party checkouts made by setup scripts ------------------------------------------------------------
+classifiers/*/src/
+classifiers/*/server/src/
+
+# --- Environments, caches and editor/OS files ---------------------------------------------------------------
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.cache/
+.claude/
+.vscode/
+.idea/
+.DS_Store

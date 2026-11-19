@@ -1,0 +1,4 @@
+typesafe-sdk
+python-dotenv
+pandas
+httpx

@@ -1,0 +1,4 @@
+kev[mlx] @ git+https://github.com/jaredpalmer/kev@45923b7a3460b6d36358e2e143455902c1eb856b
+pandas
+httpx
+pyarrow

@@ -1,0 +1,8 @@
+# ModernBERT needs transformers >= 4.48. onnxruntime: the optional CPU backend (MODERNBERT_JEV_BACKEND=onnx).
+torch
+transformers>=4.48
+onnxruntime
+tokenizers
+python-dotenv
+pandas
+httpx
