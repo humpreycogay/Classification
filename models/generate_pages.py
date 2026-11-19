@@ -17,6 +17,7 @@ from urllib.parse import quote
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "runner"))
 from apps import APPS as ALL_APPS, CONFIDENCE_KINDS, PAID_MAX_N, confidence_kind  # noqa: E402
+import theme_toggle  # noqa: E402
 
 # Registered in the runner but not benchmarked in this project. They get no model page; the index describes them in
 # its "Worth knowing" section instead.
@@ -843,7 +844,7 @@ def head(title: str, description: str) -> str:
             f'<meta name="viewport" content="width=device-width,initial-scale=1">'
             f'<meta name="description" content="{h(description)}"><title>{h(title)}</title>{FONTS}'
             f'<link rel="icon" href="{FAVICON}">'
-            f'<link rel="stylesheet" href="styles.css"></head><body>')
+            f'<link rel="stylesheet" href="styles.css">{theme_toggle.HEAD_JS}</head><body>')
 
 
 def topbar(current: str = "") -> str:
@@ -853,7 +854,8 @@ def topbar(current: str = "") -> str:
     return (f'<header class="topbar"><div class="wrap"><a class="brand" href="index.html">{LOGO}<span>Classification'
             f'</span></a><nav class="topnav">{nav("index.html", "Models", "models")}'
             f'{nav("index.html#intro", "Introduction", "intro")}</nav>'
-            f'<div class="actions"><span class="actions-label">Reports</span>{report_links()}</div></div></header>')
+            f'<div class="actions"><span class="actions-label">Reports</span>{report_links()}'
+            f'{theme_toggle.BUTTON}</div></div></header>{theme_toggle.BODY_JS}')
 
 
 def report_links() -> str:

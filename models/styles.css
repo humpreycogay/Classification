@@ -74,6 +74,14 @@ code { font: 0.85em/1.5 var(--mono); background: var(--code-bg); padding: 1px 5p
 .btn .arrow { color: var(--faint); font-size: 11px; transition: transform .15s; }
 .btn:hover .arrow { color: var(--mark); transform: translate(1px, -1px); }
 
+/* Light/dark toggle (markup and script from runner/theme_toggle.py). Shows the theme it switches to. */
+.theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0;
+  margin-left: 4px; border: 1px solid var(--line-strong); background: var(--raised); color: var(--mark); cursor: pointer; }
+.theme-toggle:hover { border-color: var(--mark); background: var(--accent-soft); }
+.theme-toggle:focus-visible { outline: 2px solid var(--mark); outline-offset: 2px; }
+.theme-toggle .theme-ico { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round; display: none; }
+.theme-toggle[data-mode="light"] .moon, .theme-toggle[data-mode="dark"] .sun { display: block; }
 /* Page heading: modest size */
 .pagehead { padding: 44px 0 32px; }
 .crumb { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; font: 400 11px/1.4 var(--mono); letter-spacing: .06em;

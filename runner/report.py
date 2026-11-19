@@ -43,6 +43,7 @@ from pathlib import Path
 import pandas as pd
 
 import perf
+import theme_toggle
 import shared_path  # noqa: F401  (puts shared/ on sys.path)
 import task as tasks
 from apps import APPROACHES, APPS, APPS_BY_NAME, CONFIDENCE_KINDS, confidence_kind
@@ -994,7 +995,8 @@ def build_report(run_dir: Path, also: tuple[tuple[Path, Path], ...] = ()) -> Pat
 
     w("<!doctype html><html lang='en'><head><meta charset='utf-8'>"
       "<meta name='viewport' content='width=device-width, initial-scale=1'>"
-      f"<title>Classifier Benchmark Report</title><style>{CSS}</style></head><body><main>")
+      f"<title>Classifier Benchmark Report</title><style>{CSS}{theme_toggle.FLOATING_CSS}</style>"
+      f"{theme_toggle.HEAD_JS}</head><body>{theme_toggle.BUTTON}{theme_toggle.BODY_JS}<main>")
     w("<h1>Classifier benchmark report</h1>")
     w(f"<p class='note'><a href='{SIMPLE_HREF}'>← Summary report</a>: the plain-language version of these results. "
       "This page is the full raw generated report.</p>")

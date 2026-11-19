@@ -16,6 +16,7 @@ import math
 from datetime import datetime
 
 import perf
+import theme_toggle
 from stats import wilson
 
 MODELS_HREF = "{{MODELS_HREF}}"
@@ -199,7 +200,8 @@ def simple_page(*, task, summary: dict, primary: str, noun: str, apps: dict, met
     w("<!doctype html><html lang='en'><head><meta charset='utf-8'>"
       "<meta name='viewport' content='width=device-width, initial-scale=1'>"
       f"<meta name='description' content='{esc(name)} benchmark results in plain language.'>"
-      f"<title>{esc(name)} Benchmark Results</title><style>{CSS}</style></head><body><main>")
+      f"<title>{esc(name)} Benchmark Results</title><style>{CSS}{theme_toggle.FLOATING_CSS}</style>"
+      f"{theme_toggle.HEAD_JS}</head><body>{theme_toggle.BUTTON}{theme_toggle.BODY_JS}<main>")
     w(f"<p class='crumb'><a href='{MODELS_HREF}/index.html'>Text Classification Benchmark</a> › {esc(name)} results</p>")
     w("<p class='eyebrow'>Benchmark results</p>")
     w(f"<h1>How well do text classifiers sort {esc(name)}?</h1>")
