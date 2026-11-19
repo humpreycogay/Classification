@@ -46,6 +46,7 @@ import perf
 import shared_path  # noqa: F401  (puts shared/ on sys.path)
 import task as tasks
 from apps import APPS, APPS_BY_NAME, CONFIDENCE_KINDS, confidence_kind
+from simple_report import FULL_HREF, simple_page
 from selective import (COVERAGES, MCE_MIN_BIN, MIN_N_FOR_99, SATURATED, TARGETS, calibration_warnings,
                        selective_metrics)
 from stats import (ALPHA, BOOTSTRAP_REPLICATES, BOOTSTRAP_SEED, bootstrap_metrics, holm, leading_tier, rank_intervals,
@@ -291,10 +292,16 @@ def redact_hosts(page: str) -> str:
     return PRIVATE_HOST.sub("a LAN server", page)
 
 
-def write_page(page: str, path: Path) -> None:
-    """Write the report to path with model-page links relative to that file."""
-    href = Path(os.path.relpath(MODELS_DIR, path.parent)).as_posix()
-    path.write_text(redact_hosts(page.replace(MODELS_HREF, href)))
+SIMPLE_HREF = "{{SIMPLE_HREF}}"  # the summary report, linked from the full one (see write_page)
+
+
+def write_page(page: str, path: Path, refs: dict[str, Path] | None = None) -> None:
+    """Write a report page to path with model-page links (and each placeholder in refs) relative to that file."""
+    rel = lambda target: Path(os.path.relpath(target, path.parent)).as_posix()  # noqa: E731
+    page = page.replace(MODELS_HREF, rel(MODELS_DIR))
+    for placeholder, target in (refs or {}).items():
+        page = page.replace(placeholder, rel(target))
+    path.write_text(redact_hosts(page))
 
 
 # ---------------------------------------------------------------- charts (inline SVG, single hue)
@@ -807,8 +814,12 @@ document.addEventListener('focusout', () => { tip.style.opacity = 0; });
 """
 
 
-def build_report(run_dir: Path, also: tuple[Path, ...] = ()) -> Path:
-    """Write run_dir/report.html (and a copy at each path in `also`, with its own links); return the first."""
+def build_report(run_dir: Path, also: tuple[tuple[Path, Path], ...] = ()) -> Path:
+    """Write the full report (run_dir/report.html) and the plain-language summary (run_dir/report_simple.html).
+
+    Each (summary_path, full_path) pair in `also` gets another copy of both, each with its own relative links (the
+    summary links to its full report and back). Returns the run folder's full report.
+    """
     run_dir = Path(run_dir)
     summary = json.loads((run_dir / "summary.json").read_text())
     global LABELS, PROB_COLS
@@ -931,6 +942,8 @@ def build_report(run_dir: Path, also: tuple[Path, ...] = ()) -> Path:
       "<meta name='viewport' content='width=device-width, initial-scale=1'>"
       f"<title>Classifier Benchmark Report</title><style>{CSS}</style></head><body><main>")
     w("<h1>Classifier benchmark report</h1>")
+    w(f"<p class='note'><a href='{SIMPLE_HREF}'>← Summary report</a>: the plain-language version of these results. "
+      "This page is the full raw generated report.</p>")
     seeds = summary.get("seeds") or [summary["seed"]]
     tier = summary.get("tier") or tasks.tier_name(task, summary["n"])
     leak = summary.get("leakage") or {}
@@ -1701,8 +1714,14 @@ so one-hot outputs score as chance for the second slot.</li>
 
     path = run_dir / "report.html"
     page = "".join(out)
-    for target in (path, *also):
-        write_page(page, Path(target))
+    simple = simple_page(task=task, summary=summary, primary=primary, noun=noun, apps=apps, metrics=metrics,
+                         metas=metas, ranked=ranked, models=models, virtual=virtual, lead=lead, best=best,
+                         title=title, link=link, supervision=supervision, per_item=per_item,
+                         example=frames.get(ref_name) if ref_name else None)
+    for simple_path, full_path in ((run_dir / "report_simple.html", path), *also):
+        simple_path, full_path = Path(simple_path), Path(full_path)
+        write_page(page, full_path, {SIMPLE_HREF: simple_path})
+        write_page(simple, simple_path, {FULL_HREF: full_path})
     (run_dir / "report_meta.json").write_text(json.dumps(report_meta, indent=2) + "\n")
     return path
 

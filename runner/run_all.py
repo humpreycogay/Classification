@@ -27,9 +27,10 @@ remote apps on a task that keeps its data local) are skipped with the reason.
 The runner computes the expected sample before any app runs, rejects sizes it cannot produce, and
 validates every result (validate.py); an invalid result is reported as failed and never ranked.
 
-Output: reports/runs/<timestamp>/ (logs, copied results, summary.json, report.html);
-reports/<task>.html is always the latest report for that task (reports/ag_news.html,
-reports/banking77.html). With several seeds or repeats every run is kept
+Output: reports/runs/<timestamp>/ (logs, copied results, summary.json, report.html = full report,
+report_simple.html = plain-language summary); reports/<task>.html is always the latest summary report for that
+task (reports/ag_news.html, reports/banking77.html) and reports/<task>_full.html the latest full raw report,
+reached through a link on the summary. With several seeds or repeats every run is kept
 under apps/<app>/seed{S}_rep{R}/; the report ranks the first seed's first valid run and adds
 mean / median / SD / IQR and prediction stability over all runs. The majority-class and
 stratified-random virtual baselines (baselines.py) are generated on the same sample in every run.
@@ -520,8 +521,13 @@ def environment() -> dict:
 
 
 def latest_report_path(task_name: str) -> Path:
-    """reports/<task>.html: the latest report for the task (reports/ag_news.html, reports/banking77.html)."""
+    """reports/<task>.html: the latest summary report for the task (reports/ag_news.html, reports/banking77.html)."""
     return REPORTS_DIR / f"{task_name}.html"
+
+
+def latest_full_report_path(task_name: str) -> Path:
+    """reports/<task>_full.html: the latest full raw report, linked only from the summary report."""
+    return REPORTS_DIR / f"{task_name}_full.html"
 
 
 def main() -> None:
@@ -676,9 +682,10 @@ def main() -> None:
 
     summary["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     (run_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
-    latest = latest_report_path(task.name)
-    report = build_report(run_dir, also=(latest,))  # the copy gets its own relative links to models/
-    print(f"\nReport: {report}\nLatest: {latest}")
+    latest, latest_full = latest_report_path(task.name), latest_full_report_path(task.name)
+    report = build_report(run_dir, also=((latest, latest_full),))  # each copy gets its own relative links
+    print(f"\nReport: {report} (summary: {report.with_name('report_simple.html')})"
+          f"\nLatest: {latest} (full raw report: {latest_full})")
 
 
 if __name__ == "__main__":

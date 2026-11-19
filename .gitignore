@@ -1,4 +1,4 @@
-# Published: the site (index.html, models/, reports/ag_news.html, reports/banking77.html) and the code to
+# Published: the site (index.html, models/, reports/<task>.html summaries + <task>_full.html raw reports) and the code to
 # reproduce it (run, runner/, shared/, classifiers/, data/tasks/, .env.example). Everything else stays local.
 
 # --- Secrets and credentials -------------------------------------------------------------------------------
@@ -54,6 +54,8 @@ classifiers/*/results/
 reports/*
 !reports/ag_news.html
 !reports/banking77.html
+!reports/ag_news_full.html
+!reports/banking77_full.html
 *.log
 
 # --- Downloaded datasets (fetched and checksum-verified on first use; manifests in data/tasks/ are tracked) -

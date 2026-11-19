@@ -172,6 +172,33 @@ class ReportTest(unittest.TestCase):
         self.assertIn("Bootstrap leading tier", tiles)
         self.assertNotIn("statistically tied)", tiles)
         self.assertNotIn("Most accurate", tiles)
+        simple = (self.run / "report_simple.html").read_text()
+        self.assertIn("There is no single winner", simple)
+
+    def test_summary_report_written_beside_full_report(self):
+        """Every build writes both versions; the summary links to the full raw report and back."""
+        simple = (self.run / "report_simple.html").read_text()
+        self.assertIn("href='report.html'", simple)
+        self.assertIn("full raw generated report", simple)
+        self.assertIn("href='report_simple.html'>← Summary report", self.html)
+        self.assertIn("is the most accurate", simple)  # one clear winner (see test_clear_winner_named)
+        self.assertIn("Title perfect", simple)
+        table = simple[simple.index("<table"):simple.index("</table>")]
+        for name in ("othersample", "badsha", "broken"):  # incompatible or invalid: never ranked
+            self.assertNotIn(f"Title {name}<", table)
+        self.assertIn("Title virtual", table)  # the baseline row
+        self.assertNotIn("{{", simple)  # every placeholder replaced
+
+    def test_latest_copies_link_each_other(self):
+        """The reports/<task>.html summary and reports/<task>_full.html copies point at each other."""
+        out = Path(self.tmp.name) / "latest"
+        out.mkdir()
+        build_report(self.run, also=((out / "ag_news.html", out / "ag_news_full.html"),))
+        simple, full = (out / "ag_news.html").read_text(), (out / "ag_news_full.html").read_text()
+        self.assertIn("href='ag_news_full.html'", simple)
+        self.assertIn("href='ag_news.html'>← Summary report", full)
+        self.assertIn("Classifier benchmark report", full)
+        self.assertNotIn("{{", simple + full)
 
     def test_wording_does_not_overclaim(self):
         """Errata E1-E5, E13: no pairwise claims from marginal CIs, no 'certified', no 'significantly ahead'."""
