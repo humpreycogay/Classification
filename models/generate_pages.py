@@ -2756,14 +2756,18 @@ def index_page() -> str:
               "rows.forEach(r=>r.hidden=!r.dataset.search.includes(s));"
               "groups.forEach(g=>g.hidden=![...g.querySelectorAll('tr[data-search]')].some(r=>!r.hidden));"
               "empty.hidden=rows.some(r=>!r.hidden)});</script>")
-    return (head("Classifier model guide", f"Guide to the {len(APPS)} text classifiers in the Classification "
-                                           f"benchmark: what they are, what they need, and how to run them.")
+    return (head("Text Classification Benchmark and Guide",
+                 f"A benchmark of {len(APPS)} text classifiers on AG News and Banking77, and a guide to running, "
+                 f"training and fine-tuning them.")
             + topbar("models")
             + f'<main><div class="pagehead"><div class="wrap"><p class="crumb"><span>Model guide</span><span>/</span>'
-              f'<span>{len(APPS)} entries</span></p><h1>Text classifiers in this benchmark</h1>'
-              f'<p class="lede">This guide describes every classifier the runner can execute: what each model is, what '
-              f'it needs, how to send it text, what it returns, and how to run and judge it. Start with the '
-              f'introduction, or go straight to the <a href="#catalog">model table</a>.</p></div></div>'
+              f'<span>{len(APPS)} entries</span></p><h1>Text Classification Benchmark and Guide</h1>'
+              f'<p class="lede">A benchmark and a hands-on guide to text classification. {len(APPS)} classifiers, from '
+              f'TF-IDF baselines and networks trained from scratch to fine-tuned encoders, zero-shot models and LLMs, '
+              f'are run on the same AG News and Banking77 test sets. Each model page explains what the model is, what '
+              f'it needs, how to run it and call it from Python, and how to read its results; the trained entries walk '
+              f'through training from scratch and fine-tuning step by step. Start with '
+              f'<a href="#start">Get started</a>, or go straight to the <a href="#catalog">model table</a>.</p></div></div>'
             + f'<div class="band"><div class="wrap meta groups">{band}</div></div>'
             + f'<div class="wrap doc" id="intro"><aside class="toc"><p class="toc-title">Introduction</p>'
               f'<ol>{intro_toc}<li><a href="#catalog"><span>{table_num}</span>Model table</a></li></ol></aside>'
